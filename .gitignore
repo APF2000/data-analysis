@@ -163,3 +163,5 @@ dataset_car/UAH-DRIVESET-v1/*
 Dados_app/DELETEME.txt
 dataset_car/movie.gif
 dataset_car/result_image.png
+dataset_car/images/*
+status_invest/acoes_brasil.csv
