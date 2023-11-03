@@ -3,8 +3,50 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 import io
+import json
+from datetime import datetime
 
-class RideParser():
+# Fri Nov 03 13:37:58 GMT-03:00 2023
+app_date_format = "%a %b %d %H:%M:%S %Z-03:00 %Y"
+
+class RealRideParser():
+	def __init__(self, root_dir):
+		self.root_dir = root_dir
+		self.gps_df = self.create_gps_df()
+		# self.accelerometer_df = self.create_accelerometer_df()
+
+	def create_gps_df(self):
+		gps_file_path = os.path.join(self.root_dir, "DELETEME_GPS.txt")
+		gps_file = open(gps_file_path, "r")
+
+		data = []
+		for line in gps_file.readlines():
+			lat_long = json.loads(line[35:])
+			original_time_string = line[:34]
+
+			data_date = datetime.strptime(original_time_string, app_date_format)
+			timestamp = data_date.timestamp()
+			# print("date: ", data_date, timestamp)
+
+			data_line = {
+				"timestamp": timestamp,
+				"original_time_string": original_time_string,
+				"lat": float(lat_long[0]),
+				"long": float(lat_long[1])
+			}
+
+			data.append(data_line)
+
+		return pd.DataFrame(data)
+
+	def create_accelerometer_df(self):
+		accelerometer_file_path = os.path.join(self.root_dir, "RAW_ACCELEROMETERS.txt")
+
+		col_names = ["timestamp", "is speed gt 50 kmh", "acc_x", "acc_y", "acc_z", "filtered_acc_x", "filtered_acc_y", "filtered_acc_z", "roll_degrees", "pitch_degrees", "yaw_degrees", "?1", "?2", "?3", "?4"]
+
+		return pd.read_csv(accelerometer_file_path, sep=" ", names=col_names)
+
+class UAHRideParser():
 	def __init__(self, root_dir):
 		self.root_dir = root_dir
 		self.gps_df = self.create_gps_df()
