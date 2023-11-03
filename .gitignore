@@ -165,3 +165,7 @@ dataset_car/movie.gif
 dataset_car/result_image.png
 dataset_car/images/*
 status_invest/acoes_brasil.csv
+dataset_car/RealData/DELETEME_ACCELERATION.txt
+.gitignore
+dataset_car/RealData/DELETEME.txt
+dataset_car/RealData/DELETEME_GPS.txt
