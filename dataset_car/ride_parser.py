@@ -13,7 +13,7 @@ class RealRideParser():
 	def __init__(self, root_dir):
 		self.root_dir = root_dir
 		self.gps_df = self.create_gps_df()
-		# self.accelerometer_df = self.create_accelerometer_df()
+		self.accelerometer_df = self.create_accelerometer_df()
 
 	def create_gps_df(self):
 		gps_file_path = os.path.join(self.root_dir, "DELETEME_GPS.txt")
@@ -40,11 +40,34 @@ class RealRideParser():
 		return pd.DataFrame(data)
 
 	def create_accelerometer_df(self):
-		accelerometer_file_path = os.path.join(self.root_dir, "RAW_ACCELEROMETERS.txt")
+		accelerometer_file_path = os.path.join(self.root_dir, "DELETEME_ACCELERATION.txt")
 
-		col_names = ["timestamp", "is speed gt 50 kmh", "acc_x", "acc_y", "acc_z", "filtered_acc_x", "filtered_acc_y", "filtered_acc_z", "roll_degrees", "pitch_degrees", "yaw_degrees", "?1", "?2", "?3", "?4"]
+		gps_file = open(accelerometer_file_path, "r")
 
-		return pd.read_csv(accelerometer_file_path, sep=" ", names=col_names)
+		data = []
+		for line in gps_file.readlines():
+			acc_s = json.loads(line[35:])
+			acc_s = list(map(lambda x: float(x.replace(',', '.')), acc_s))
+
+			original_time_string = line[:34]
+
+			data_date = datetime.strptime(original_time_string, app_date_format)
+			timestamp = data_date.timestamp()
+			# print("date: ", data_date, timestamp)
+
+			data_line = {
+				"timestamp": timestamp,
+				"acc_x": acc_s[0],
+				"acc_y": acc_s[1],
+				"acc_z": acc_s[2],
+				"filtered_acc_x": acc_s[0],
+				"filtered_acc_y": acc_s[1],
+				"filtered_acc_z": acc_s[2]
+			}
+
+			data.append(data_line)
+
+		return pd.DataFrame(data)
 
 class UAHRideParser():
 	def __init__(self, root_dir):
