@@ -169,3 +169,4 @@ dataset_car/RealData/DELETEME_ACCELERATION.txt
 .gitignore
 dataset_car/RealData/DELETEME.txt
 dataset_car/RealData/DELETEME_GPS.txt
+dataset_car/RealData/images/*
