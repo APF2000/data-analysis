@@ -6,6 +6,10 @@ import io
 import json
 from datetime import datetime
 
+import matplotlib.pyplot as plt
+import os
+
+
 # Fri Nov 03 13:37:58 GMT-03:00 2023
 app_date_format = "%a %b %d %H:%M:%S %Z-03:00 %Y"
 
@@ -69,6 +73,65 @@ class RealRideParser():
 
 		return pd.DataFrame(data)
 
+	def foo_for_real_data(self, frame_granularity, delta_time_size, img_id):
+		fig, axs = plt.subplots(ncols=1, nrows=3)
+
+		accelerometer_df = self.accelerometer_df
+
+		min_timestamp = accelerometer_df["timestamp"].iloc[0]
+		max_timestamp = accelerometer_df["timestamp"].iloc[-1]
+
+		lower_limit = min_timestamp + frame_granularity * img_id 
+		upper_limit = lower_limit + delta_time_size
+		# print("low up", lower_limit, upper_limit)
+		# print("min max", min_timestamp, max_timestamp)
+
+		# import pdb; pdb.set_trace()
+
+		time_filter = (accelerometer_df.timestamp >= lower_limit) & (accelerometer_df.timestamp < upper_limit)
+		filtered_accelerations_df = accelerometer_df[time_filter]
+		# print("filtered_accelerations_df", filtered_accelerations_df)
+		# print("accelerometer_df", accelerometer_df)
+
+		acc_x = filtered_accelerations_df["acc_x"]
+		acc_y = filtered_accelerations_df["acc_y"]
+		acc_z = filtered_accelerations_df["acc_z"]
+		timestamp = filtered_accelerations_df["timestamp"]
+
+		# axs[0].scatter(timestamp, acc_x, s=0.1)
+		axs[0].plot(timestamp, filtered_accelerations_df["acc_x"], label="acc_x")
+		axs[0].plot(timestamp, filtered_accelerations_df["filtered_acc_x"], label="filt_acc_x")
+		axs[0].legend(loc='right')
+		axs[0].set_title("acc_x")
+
+		axs[1].plot(timestamp, acc_y)
+		axs[1].plot(timestamp, filtered_accelerations_df["filtered_acc_y"])
+		axs[1].set_title("acc_y")
+
+		axs[2].plot(timestamp, acc_z)    
+		axs[2].plot(timestamp, filtered_accelerations_df["filtered_acc_z"])
+		axs[2].set_title("acc_z")
+
+		for ax in axs:
+			# ax.set_ylim(-10, 10)
+			ax.set_xlim(lower_limit, upper_limit)
+
+		# axs.legend(loc='center right', bbox_to_anchor=(1.25, 0.5))
+
+		# fig.ylim(-0.2, 0.2)
+		fig.tight_layout()
+
+		imgs_path = os.path.join(self.root_dir, "images")
+		path_exists = os.path.exists(imgs_path)
+		if not path_exists:
+			os.makedirs(imgs_path)
+
+		fig_name = os.path.join(imgs_path, "fig_%02d" % img_id)
+		fig.savefig(fig_name)
+
+		plt.close(fig)
+
+
 class UAHRideParser():
 	def __init__(self, root_dir):
 		self.root_dir = root_dir
@@ -124,3 +187,52 @@ class UAHRideParser():
 			plt.savefig(img_buf, format='png')
 
 			yield img_buf
+				
+	def foo(self, frame_granularity, delta_time_size, img_id):
+		fig, axs = plt.subplots(ncols=1, nrows=3)
+
+		accelerometer_df = self.accelerometer_df
+
+		lower_limit = frame_granularity * img_id 
+		upper_limit = frame_granularity * img_id + delta_time_size
+		# print("low up", lower_limit, upper_limit)
+		time_filter = (accelerometer_df.timestamp >= lower_limit) & (accelerometer_df.timestamp < upper_limit)
+		filtered_accelerations_df = accelerometer_df[time_filter]
+
+		acc_x = filtered_accelerations_df["acc_x"]
+		acc_y = filtered_accelerations_df["acc_y"]
+		acc_z = filtered_accelerations_df["acc_z"]
+		timestamp = filtered_accelerations_df["timestamp"]
+
+		# axs[0].scatter(timestamp, acc_x, s=0.1)
+		axs[0].plot(timestamp, filtered_accelerations_df["acc_x"], label="acc_x")
+		axs[0].plot(timestamp, filtered_accelerations_df["filtered_acc_x"], label="filt_acc_x")
+		axs[0].legend(loc='right')
+		axs[0].set_title("acc_x")
+
+		axs[1].plot(timestamp, acc_y)
+		axs[1].plot(timestamp, filtered_accelerations_df["filtered_acc_y"])
+		axs[1].set_title("acc_y")
+
+		axs[2].plot(timestamp, acc_z)    
+		axs[2].plot(timestamp, filtered_accelerations_df["filtered_acc_z"])
+		axs[2].set_title("acc_z")
+
+		for ax in axs:
+			ax.set_ylim(-0.2, 0.2)
+			ax.set_xlim(lower_limit, upper_limit)
+
+		# axs.legend(loc='center right', bbox_to_anchor=(1.25, 0.5))
+
+		# fig.ylim(-0.2, 0.2)
+		fig.tight_layout()
+
+		imgs_path = os.path.join(self.root_dir, "images")
+		path_exists = os.path.exists(imgs_path)
+		if not path_exists:
+			os.makedirs(imgs_path)
+
+		fig_name = os.path.join(imgs_path, "fig_%02d" % img_id)
+		fig.savefig(fig_name)
+
+		plt.close(fig)
