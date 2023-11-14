@@ -21,6 +21,22 @@ class RealRideParser():
 		self.gps_df = self.create_gps_df()
 		self.accelerometer_df = self.create_accelerometer_df()
 
+	def get_acc_stats(self):
+		acc_df = self.accelerometer_df
+
+		mean_acc = acc_df["acc_resultant"].mean()
+		std_dev_acc = acc_df["acc_resultant"].std()
+		median = acc_df["acc_resultant"].median()
+
+		stats = {
+			"mean_acc": mean_acc,
+			"std_dev_acc": std_dev_acc,
+			"median": median
+		}
+
+		return acc_df["acc_resultant"].describe() #tats
+
+
 	def create_gps_df(self):
 		gps_file_path = os.path.join(self.root_dir, "DELETEME_GPS.txt")
 		gps_file = open(gps_file_path, "r")
