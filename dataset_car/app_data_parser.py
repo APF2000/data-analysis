@@ -1,9 +1,10 @@
 import pandas as pd
 import json
 from datetime import datetime
+import os
 
 def get_data_from_app():
-	engine_data_path = "..\\Dados_app\\DELETEME.txt"
+	engine_data_path = os.path.join("RealData", "DELETEME.txt")
 
 	# ex: Wed Jul 26 22:15:49 GMT+02:00 2023
 	original_date_format = "%a %b %d %H:%M:%S GMT%z %Y"
@@ -13,6 +14,8 @@ def get_data_from_app():
 
 	engine_data = open(engine_data_path, "r").read().strip()
 	for data_entry in engine_data.split("\n"):
+		data_entry = data_entry.replace("NODATA", "")
+
 		date = data_entry[:34]
 		info_list = json.loads(data_entry[35:])
 

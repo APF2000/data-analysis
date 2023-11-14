@@ -9,6 +9,8 @@ from datetime import datetime
 import matplotlib.pyplot as plt
 import os
 
+import numpy as np
+
 
 # Fri Nov 03 13:37:58 GMT-03:00 2023
 app_date_format = "%a %b %d %H:%M:%S %Z-03:00 %Y"
@@ -71,10 +73,14 @@ class RealRideParser():
 
 			data.append(data_line)
 
-		return pd.DataFrame(data)
+		acc_df = pd.DataFrame(data)
+
+		acc_df["acc_resultant"] = np.sqrt(acc_df["acc_x"] ** 2 + acc_df["acc_y"] ** 2 + acc_df["acc_z"] ** 2)
+
+		return acc_df
 
 	def foo_for_real_data(self, frame_granularity, delta_time_size, img_id):
-		fig, axs = plt.subplots(ncols=1, nrows=3)
+		fig, axs = plt.subplots(ncols=1, nrows=4)
 
 		accelerometer_df = self.accelerometer_df
 
@@ -96,6 +102,7 @@ class RealRideParser():
 		acc_x = filtered_accelerations_df["acc_x"]
 		acc_y = filtered_accelerations_df["acc_y"]
 		acc_z = filtered_accelerations_df["acc_z"]
+		acc_resultant = filtered_accelerations_df["acc_resultant"]
 		timestamp = filtered_accelerations_df["timestamp"]
 
 		# axs[0].scatter(timestamp, acc_x, s=0.1)
@@ -111,6 +118,10 @@ class RealRideParser():
 		axs[2].plot(timestamp, acc_z)    
 		axs[2].plot(timestamp, filtered_accelerations_df["filtered_acc_z"])
 		axs[2].set_title("acc_z")
+
+		axs[3].plot(timestamp, acc_resultant)    
+		axs[3].plot(timestamp, filtered_accelerations_df["acc_resultant"])
+		axs[3].set_title("acc_resultant")
 
 		for ax in axs:
 			# ax.set_ylim(-10, 10)
@@ -141,7 +152,7 @@ class UAHRideParser():
 	def create_gps_df(self):
 		gps_file_path = os.path.join(self.root_dir, "RAW_GPS.txt")
 
-		col_names = ["timestamp", "speed", "lat", "long", "altitude", "vert accuracy", "horiz accuracy", "course", "difcourse", "?1", "?2", "?3", "?4"]
+		col_names = ["timestamp", "speed", "lat", "long", "altitude", "vert accuracy", "horiz accuracy", "course", "difcourse"] #, "?1", "?2", "?3", "?4"]
 
 		return pd.read_csv(gps_file_path, sep=" ", names=col_names)
 
@@ -149,18 +160,22 @@ class UAHRideParser():
 		accelerometer_file_path = os.path.join(self.root_dir, "RAW_ACCELEROMETERS.txt")
 
 		col_names = ["timestamp", "is speed gt 50 kmh", "acc_x", "acc_y", "acc_z", "filtered_acc_x", "filtered_acc_y", "filtered_acc_z", "roll_degrees", "pitch_degrees", "yaw_degrees", "?1", "?2", "?3", "?4"]
+		acc_df = pd.read_csv(accelerometer_file_path, sep=" ", names=col_names)
 
-		return pd.read_csv(accelerometer_file_path, sep=" ", names=col_names)
+		acc_df["acc_resultant"] = np.sqrt(acc_df["acc_x"] ** 2 + acc_df["acc_y"] ** 2 + acc_df["acc_z"] ** 2)
+
+		return acc_df
 	
 	def generate_acc_sub_graph(self):
 		for i in range(100):
-			fig, axs = plt.subplots(ncols=1, nrows=3)
+			fig, axs = plt.subplots(ncols=1, nrows=4)
 
 			accelerometer_df = self.accelerometer_df
 			accelerometer_df = accelerometer_df[accelerometer_df.timestamp > i & accelerometer_df.timestamp < i + 20]
 			acc_x = accelerometer_df["acc_x"]
 			acc_y = accelerometer_df["acc_y"]
 			acc_z = accelerometer_df["acc_z"]
+			acc_resultant = accelerometer_df["acc_resultant"]
 			timestamp = accelerometer_df["timestamp"]
 
 			# axs[0].scatter(timestamp, acc_x, s=0.1)
@@ -176,6 +191,12 @@ class UAHRideParser():
 			axs[2].plot(timestamp, acc_z)
 			axs[2].plot(timestamp, accelerometer_df["filtered_acc_z"])
 			axs[2].set_title("acc_z")
+
+			axs[3].plot(timestamp, acc_resultant)
+			axs[3].plot(timestamp, accelerometer_df["acc_resultant"])
+			axs[3].set_title("acc_resultant")
+
+			
 
 			# axs.legend(loc='center right', bbox_to_anchor=(1.25, 0.5))
 
