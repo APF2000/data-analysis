@@ -1,6 +1,7 @@
+ipykernel
 numpy
 pandas
 matplotlib
 folium
 geopy
-ipykernel
+pyproj

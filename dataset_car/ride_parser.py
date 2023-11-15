@@ -10,6 +10,9 @@ import matplotlib.pyplot as plt
 import os
 
 import numpy as np
+import math
+
+import pyproj
 
 
 # Fri Nov 03 13:37:58 GMT-03:00 2023
@@ -20,6 +23,60 @@ class RealRideParser():
 		self.root_dir = root_dir
 		self.gps_df = self.create_gps_df()
 		self.accelerometer_df = self.create_accelerometer_df()
+
+	def create_velocity_df(self):
+		gps_df = self.gps_df #.drop_duplicates(subset=["timestamp"])
+		n_samples = len(gps_df)
+
+		data = []
+		desired_cols = ["timestamp", "lat", "long"]
+		for i in range(n_samples - 1):
+			time_1, lat_1, long_1 = tuple(gps_df[desired_cols].iloc[i])
+			time_2, lat_2, long_2 = tuple(gps_df[desired_cols].iloc[i + 1])
+
+			# print("time_1", time_1)
+			# print("time_2", time_2)
+
+			delta_t = time_2 - time_1 # seconds
+			delta_lat = (lat_2 - lat_1) * math.pi / 180
+			delta_long = (long_1 - long_2) * math.pi / 180
+
+			if delta_t == 0:
+				continue
+
+			# https://stackoverflow.com/questions/639695/how-to-convert-latitude-or-longitude-to-meters
+			R = 6378.137 # radius of earth in KM
+
+			a_1 = math.sin(delta_lat/2) ** 2
+			a_2 = math.cos(lat_1 * math.pi / 180) * math.cos(lat_2 * math.pi / 180) * math.sin(delta_long/2) ** 2
+			a = a_1 + a_2
+
+			c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
+			delta_distance = (R * c) * 1000 # meters
+
+			v_meters_p_second = delta_distance / delta_t
+			v_kmh = v_meters_p_second * 3.6
+					
+			data_line = {
+				"timestamp": time_1,
+				"velocity": v_kmh
+			}
+
+			# x1, y1 = pyproj.transform("wgs84", "epsg3035", long_1, lat_1)
+			# print(x1, y1)
+
+			# x2, y2 = pyproj.transform("wgs84", "epsg3035", long_2, lat_2)
+			# print(x2, y2)
+
+			# # a Pythagore's theorem is sufficient to compute an approximate distance
+			# distance_m = np.sqrt((x2-x1)**2 + (y2-y1)**2)
+			# print(distance_m)
+
+			data.append(data_line)
+
+		velocity_df = pd.DataFrame(data)
+
+		return velocity_df
 
 	def get_acc_stats(self):
 		acc_df = self.accelerometer_df
