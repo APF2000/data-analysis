@@ -13,6 +13,7 @@ import numpy as np
 import math
 
 import pyproj
+import matplotlib.dates as mdates
 
 
 # Fri Nov 03 13:37:58 GMT-03:00 2023
@@ -164,8 +165,8 @@ class RealRideParser():
 		# max_timestamp = accelerometer_df["timestamp"].iloc[-1]
 
 		lower_limit_timestamp = min_timestamp + frame_granularity * img_id
-		lower_limit = datetime.fromtimestamp(lower_limit_timestamp)
-		upper_limit = datetime.fromtimestamp(lower_limit_timestamp + delta_time_size)
+		lower_limit = datetime.utcfromtimestamp(lower_limit_timestamp)
+		upper_limit = datetime.utcfromtimestamp(lower_limit_timestamp + delta_time_size)
 		# print("low up", lower_limit, upper_limit)
 		# print("min max", min_timestamp, max_timestamp)
 
@@ -183,10 +184,27 @@ class RealRideParser():
 		acc_resultant = filtered_accelerations_df["acc_resultant"]
 		timestamp = filtered_accelerations_df["timestamp"]
 
+		# fig, axs = plt.subplots(1, 1, figsize=(6.4, 3), layout='constrained')
+		# common to all three:
+		# for ax in axs:
+
+		# ax.plot('date', 'adj_close', data=data)
+		# plt.plot("timestamp", "SPEED", data=vel_df)
+		for ax in axs:
+			# Major ticks every half year, minor ticks every second,
+			ax.xaxis.set_major_locator(mdates.MinuteLocator(byminute=[0, 30]))
+			ax.xaxis.set_minor_locator(mdates.MinuteLocator())
+			ax.grid(True)
+			
+			ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
+			# Rotates and right-aligns the x labels so they don't crowd each other.
+			for label in ax.get_xticklabels(which='major'):
+				label.set(rotation=30, horizontalalignment='right')
+
 		# axs[0].scatter(timestamp, acc_x, s=0.1)
-		axs[0].plot(timestamp, filtered_accelerations_df["acc_x"], label="acc_x")
-		axs[0].plot(timestamp, filtered_accelerations_df["filtered_acc_x"], label="filt_acc_x")
-		axs[0].legend(loc='right')
+		axs[0].plot(timestamp, acc_x)
+		axs[0].plot(timestamp, filtered_accelerations_df["filtered_acc_x"])
+		# axs[0].legend(loc='right')
 		axs[0].set_title("acc_x")
 
 		axs[1].plot(timestamp, acc_y)
