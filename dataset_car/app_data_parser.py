@@ -4,7 +4,32 @@ from datetime import datetime
 import os
 
 def generate_acc_from_vel(vel_df):
-	pass
+	n_samples = len(vel_df)
+
+	data = []
+	for i in range(n_samples - 1):
+		time_1, vel_1 = tuple(vel_df.iloc[i])
+		time_2, vel_2 = tuple(vel_df.iloc[i + 1])
+
+		delta_t = time_2 - time_1 # seconds
+		delta_v = (vel_2 - vel_1)
+
+		if delta_t == 0:
+			continue
+		
+		acc_kmh_p_second = delta_v / delta_t
+		acc_m_p_second_2 = acc_kmh_p_second / 3.6
+				
+		data_line = {
+			"timestamp": time_1,
+			"velocity": acc_m_p_second_2
+		}
+
+		data.append(data_line)
+
+	acc_df = pd.DataFrame(data)
+
+	return acc_df
 
 def get_data_from_app():
 	engine_data_path = os.path.join("RealData", "DELETEME.txt")
