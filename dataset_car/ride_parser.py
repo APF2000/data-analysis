@@ -197,10 +197,10 @@ class RealRideParser():
 			# ax.xaxis.set_minor_locator(mdates.MinuteLocator())
 			ax.grid(True)
 			
-			ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
-			# Rotates and right-aligns the x labels so they don't crowd each other.
-			for label in ax.get_xticklabels(which='major'):
-				label.set(rotation=30, horizontalalignment='right')
+			# ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
+			# # Rotates and right-aligns the x labels so they don't crowd each other.
+			# for label in ax.get_xticklabels(which='major'):
+			# 	label.set(rotation=30, horizontalalignment='right')
 
 		# axs[0].scatter(timestamp, acc_x, s=0.1)
 		axs[0].plot(timestamp, acc_x)
