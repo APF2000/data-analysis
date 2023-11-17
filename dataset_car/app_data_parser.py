@@ -11,7 +11,7 @@ def generate_acc_from_vel(vel_df):
 		time_1, vel_1 = tuple(vel_df.iloc[i])
 		time_2, vel_2 = tuple(vel_df.iloc[i + 1])
 
-		delta_t = time_2 - time_1 # seconds
+		delta_t = time_2.timestamp() - time_1.timestamp()
 		delta_v = (vel_2 - vel_1)
 
 		if delta_t == 0:
@@ -22,7 +22,7 @@ def generate_acc_from_vel(vel_df):
 				
 		data_line = {
 			"timestamp": time_1,
-			"velocity": acc_m_p_second_2
+			"SPEED": acc_m_p_second_2
 		}
 
 		data.append(data_line)
