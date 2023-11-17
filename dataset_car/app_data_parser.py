@@ -35,7 +35,7 @@ def get_data_from_app():
 	engine_data_path = os.path.join("RealData", "DELETEME.txt")
 
 	# ex: Wed Jul 26 22:15:49 GMT+02:00 2023
-	original_date_format = "%a %b %d %H:%M:%S GMT%z %Y"
+	original_date_format = "%a %b %d %H:%M:%S %Z%z %Y"
 	# desired_date_format = "%Y-%m-%d %H:%M:%S"
 
 	param_name_to_df = {}

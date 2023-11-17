@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 
 import io
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 
 import matplotlib.pyplot as plt
 import os
@@ -17,7 +17,7 @@ import matplotlib.dates as mdates
 
 
 # Fri Nov 03 13:37:58 GMT-03:00 2023
-app_date_format = "%a %b %d %H:%M:%S %Z-03:00 %Y"
+app_date_format = "%a %b %d %H:%M:%S %Z%z %Y"
 
 class RealRideParser():
 	def __init__(self, root_dir):
@@ -25,7 +25,7 @@ class RealRideParser():
 		self.gps_df = self.create_gps_df()
 		self.accelerometer_df = self.create_accelerometer_df()
 
-	def create_velocity_df(self):
+	def create_velocity_from_gps_df(self):
 		gps_df = self.gps_df #.drop_duplicates(subset=["timestamp"])
 		n_samples = len(gps_df)
 
@@ -35,13 +35,13 @@ class RealRideParser():
 			time_1, lat_1, long_1 = tuple(gps_df[desired_cols].iloc[i])
 			time_2, lat_2, long_2 = tuple(gps_df[desired_cols].iloc[i + 1])
 
-			time_1 = time_1.timestamp()
-			time_2 = time_2.timestamp()
+			# time_1 = time_1.timestamp()
+			# time_2 = time_2.timestamp()
 
 			# print("time_1", time_1)
 			# print("time_2", time_2)
 
-			delta_t = time_2 - time_1 # seconds
+			delta_t = time_2.timestamp() - time_1.timestamp() # seconds
 			delta_lat = (lat_2 - lat_1) * math.pi / 180
 			delta_long = (long_1 - long_2) * math.pi / 180
 
@@ -62,7 +62,7 @@ class RealRideParser():
 			v_kmh = v_meters_p_second * 3.6
 					
 			data_line = {
-				"timestamp": datetime.fromtimestamp(time_1),
+				"timestamp": time_1,
 				"SPEED": v_kmh
 			}
 
@@ -108,7 +108,8 @@ class RealRideParser():
 			original_time_string = line[:34]
 
 			data_date = datetime.strptime(original_time_string, app_date_format)
-			timestamp = data_date.timestamp()
+			# data_date = data_date.replace(tzinfo=timezone.utc)
+			# timestamp = data_date.timestamp()
 			# print("date: ", data_date, timestamp)
 
 			data_line = {
@@ -135,7 +136,7 @@ class RealRideParser():
 			original_time_string = line[:34]
 
 			data_date = datetime.strptime(original_time_string, app_date_format)
-			timestamp = data_date.timestamp()
+			# timestamp = data_date.timestamp()
 			# print("date: ", data_date, timestamp)
 
 			data_line = {
