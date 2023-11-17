@@ -13,6 +13,7 @@ import numpy as np
 import math
 
 import pyproj
+import matplotlib.dates as mdates
 
 
 # Fri Nov 03 13:37:58 GMT-03:00 2023
@@ -33,6 +34,9 @@ class RealRideParser():
 		for i in range(n_samples - 1):
 			time_1, lat_1, long_1 = tuple(gps_df[desired_cols].iloc[i])
 			time_2, lat_2, long_2 = tuple(gps_df[desired_cols].iloc[i + 1])
+
+			time_1 = time_1.timestamp()
+			time_2 = time_2.timestamp()
 
 			# print("time_1", time_1)
 			# print("time_2", time_2)
@@ -58,8 +62,8 @@ class RealRideParser():
 			v_kmh = v_meters_p_second * 3.6
 					
 			data_line = {
-				"timestamp": time_1,
-				"velocity": v_kmh
+				"timestamp": datetime.fromtimestamp(time_1),
+				"SPEED": v_kmh
 			}
 
 			# x1, y1 = pyproj.transform("wgs84", "epsg3035", long_1, lat_1)
@@ -108,7 +112,7 @@ class RealRideParser():
 			# print("date: ", data_date, timestamp)
 
 			data_line = {
-				"timestamp": timestamp,
+				"timestamp": data_date,
 				"original_time_string": original_time_string,
 				"lat": float(lat_long[0]),
 				"long": float(lat_long[1])
@@ -135,7 +139,7 @@ class RealRideParser():
 			# print("date: ", data_date, timestamp)
 
 			data_line = {
-				"timestamp": timestamp,
+				"timestamp": data_date,
 				"acc_x": acc_s[0],
 				"acc_y": acc_s[1],
 				"acc_z": acc_s[2],
@@ -157,17 +161,19 @@ class RealRideParser():
 
 		accelerometer_df = self.accelerometer_df
 
-		min_timestamp = accelerometer_df["timestamp"].iloc[0]
-		max_timestamp = accelerometer_df["timestamp"].iloc[-1]
+		min_timestamp = accelerometer_df["timestamp"].iloc[0].timestamp()
+		# max_timestamp = accelerometer_df["timestamp"].iloc[-1]
 
-		lower_limit = min_timestamp + frame_granularity * img_id 
-		upper_limit = lower_limit + delta_time_size
+		lower_limit_timestamp = min_timestamp + frame_granularity * img_id
+		lower_limit = datetime.utcfromtimestamp(lower_limit_timestamp)
+		upper_limit = datetime.utcfromtimestamp(lower_limit_timestamp + delta_time_size)
 		# print("low up", lower_limit, upper_limit)
 		# print("min max", min_timestamp, max_timestamp)
 
 		# import pdb; pdb.set_trace()
 
-		time_filter = (accelerometer_df.timestamp >= lower_limit) & (accelerometer_df.timestamp < upper_limit)
+		timestamps_series = accelerometer_df["timestamp"] #.apply(lambda x : x.timestamp())
+		time_filter = (timestamps_series >= lower_limit) & (timestamps_series < upper_limit)
 		filtered_accelerations_df = accelerometer_df[time_filter]
 		# print("filtered_accelerations_df", filtered_accelerations_df)
 		# print("accelerometer_df", accelerometer_df)
@@ -178,10 +184,27 @@ class RealRideParser():
 		acc_resultant = filtered_accelerations_df["acc_resultant"]
 		timestamp = filtered_accelerations_df["timestamp"]
 
+		# fig, axs = plt.subplots(1, 1, figsize=(6.4, 3), layout='constrained')
+		# common to all three:
+		# for ax in axs:
+
+		# ax.plot('date', 'adj_close', data=data)
+		# plt.plot("timestamp", "SPEED", data=vel_df)
+		for ax in axs:
+			# Major ticks every half year, minor ticks every second,
+			ax.xaxis.set_major_locator(mdates.MinuteLocator(byminute=[0, 30]))
+			ax.xaxis.set_minor_locator(mdates.MinuteLocator())
+			ax.grid(True)
+			
+			ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
+			# Rotates and right-aligns the x labels so they don't crowd each other.
+			for label in ax.get_xticklabels(which='major'):
+				label.set(rotation=30, horizontalalignment='right')
+
 		# axs[0].scatter(timestamp, acc_x, s=0.1)
-		axs[0].plot(timestamp, filtered_accelerations_df["acc_x"], label="acc_x")
-		axs[0].plot(timestamp, filtered_accelerations_df["filtered_acc_x"], label="filt_acc_x")
-		axs[0].legend(loc='right')
+		axs[0].plot(timestamp, acc_x)
+		axs[0].plot(timestamp, filtered_accelerations_df["filtered_acc_x"])
+		# axs[0].legend(loc='right')
 		axs[0].set_title("acc_x")
 
 		axs[1].plot(timestamp, acc_y)
