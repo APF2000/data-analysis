@@ -11,7 +11,7 @@ def generate_acc_from_vel(vel_df):
 		time_1, vel_1 = tuple(vel_df.iloc[i])
 		time_2, vel_2 = tuple(vel_df.iloc[i + 1])
 
-		delta_t = time_2.timestamp() - time_1.timestamp()
+		delta_t = time_2 - time_1
 		delta_v = (vel_2 - vel_1)
 
 		if delta_t == 0:
@@ -55,7 +55,7 @@ def get_data_from_app():
 
 		data_obj = datetime.strptime(date, original_date_format)
 		timestamp = data_obj
-		# timestamp = data_obj.timestamp() * 1000
+		timestamp = data_obj.timestamp() # * 1000
 		# print(timestamp)
 
 		create_default_df = (lambda : pd.DataFrame(columns=["timestamp", param_name]))

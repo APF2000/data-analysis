@@ -41,7 +41,7 @@ class RealRideParser():
 			# print("time_1", time_1)
 			# print("time_2", time_2)
 
-			delta_t = time_2.timestamp() - time_1.timestamp() # seconds
+			delta_t = time_2 - time_1 # seconds
 			delta_lat = (lat_2 - lat_1) * math.pi / 180
 			delta_long = (long_1 - long_2) * math.pi / 180
 
@@ -109,11 +109,11 @@ class RealRideParser():
 
 			data_date = datetime.strptime(original_time_string, app_date_format)
 			# data_date = data_date.replace(tzinfo=timezone.utc)
-			# timestamp = data_date.timestamp()
+			timestamp = data_date.timestamp()
 			# print("date: ", data_date, timestamp)
 
 			data_line = {
-				"timestamp": data_date,
+				"timestamp": timestamp,
 				"original_time_string": original_time_string,
 				"lat": float(lat_long[0]),
 				"long": float(lat_long[1])
@@ -136,11 +136,11 @@ class RealRideParser():
 			original_time_string = line[:34]
 
 			data_date = datetime.strptime(original_time_string, app_date_format)
-			# timestamp = data_date.timestamp()
+			timestamp = data_date.timestamp()
 			# print("date: ", data_date, timestamp)
 
 			data_line = {
-				"timestamp": data_date,
+				"timestamp": timestamp,
 				"acc_x": acc_s[0],
 				"acc_y": acc_s[1],
 				"acc_z": acc_s[2],
@@ -162,7 +162,7 @@ class RealRideParser():
 
 		accelerometer_df = self.accelerometer_df
 
-		min_timestamp = accelerometer_df["timestamp"].iloc[0].timestamp()
+		min_timestamp = accelerometer_df["timestamp"].iloc[0] #d.timestamp()
 		# max_timestamp = accelerometer_df["timestamp"].iloc[-1]
 
 		lower_limit_timestamp = min_timestamp + frame_granularity * img_id
