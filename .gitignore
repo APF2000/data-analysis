@@ -171,3 +171,5 @@ dataset_car/RealData/DELETEME.txt
 dataset_car/RealData/DELETEME_GPS.txt
 dataset_car/RealData/images/*
 status_invest/fiis.csv
+dataset_car/test.ipynb
+dataset_car/test2.ipynb
