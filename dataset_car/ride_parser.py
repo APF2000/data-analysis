@@ -166,8 +166,8 @@ class RealRideParser():
 		# max_timestamp = accelerometer_df["timestamp"].iloc[-1]
 
 		lower_limit_timestamp = min_timestamp + frame_granularity * img_id
-		lower_limit = datetime.utcfromtimestamp(lower_limit_timestamp)
-		upper_limit = datetime.utcfromtimestamp(lower_limit_timestamp + delta_time_size)
+		lower_limit = lower_limit_timestamp
+		upper_limit = lower_limit_timestamp + delta_time_size
 		# print("low up", lower_limit, upper_limit)
 		# print("min max", min_timestamp, max_timestamp)
 
@@ -193,8 +193,8 @@ class RealRideParser():
 		# plt.plot("timestamp", "SPEED", data=vel_df)
 		for ax in axs:
 			# Major ticks every half year, minor ticks every second,
-			ax.xaxis.set_major_locator(mdates.MinuteLocator(byminute=[0, 30]))
-			ax.xaxis.set_minor_locator(mdates.MinuteLocator())
+			# ax.xaxis.set_major_locator(mdates.MinuteLocator(bysecond=range(60)))
+			# ax.xaxis.set_minor_locator(mdates.MinuteLocator())
 			ax.grid(True)
 			
 			ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
