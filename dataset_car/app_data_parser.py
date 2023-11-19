@@ -22,7 +22,7 @@ def generate_acc_from_vel(vel_df):
 				
 		data_line = {
 			"timestamp": time_1,
-			"SPEED": acc_m_p_second_2
+			"acceleration": acc_m_p_second_2
 		}
 
 		data.append(data_line)
