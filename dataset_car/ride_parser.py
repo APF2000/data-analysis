@@ -136,6 +136,18 @@ class RealRideParser():
 		}
 
 		return acc_df["acc_resultant"].describe() #tats
+	
+	def parse_data_line(self, line):
+		actual_data = json.loads(line[35:])
+		dot_convert_foo = lambda x: float(x.replace(',', '.'))
+		actual_data = list(map(dot_convert_foo, actual_data))
+		original_time_string = line[:34]
+
+		data_date = datetime.strptime(original_time_string, app_date_format)
+		timestamp = data_date.timestamp()
+
+		parsed_data_list = [timestamp] + actual_data
+		return tuple(parsed_data_list)
 
 
 	def create_gps_df(self):
@@ -144,19 +156,13 @@ class RealRideParser():
 
 		data = []
 		for line in gps_file.readlines():
-			lat_long = json.loads(line[35:])
-			original_time_string = line[:34]
 
-			data_date = datetime.strptime(original_time_string, app_date_format)
-			# data_date = data_date.replace(tzinfo=timezone.utc)
-			timestamp = data_date.timestamp()
-			# print("date: ", data_date, timestamp)
+			timestamp, lat, long = self.parse_data_line(line)
 
 			data_line = {
 				"timestamp": timestamp,
-				"original_time_string": original_time_string,
-				"lat": float(lat_long[0]),
-				"long": float(lat_long[1])
+				"lat": float(lat),
+				"long": float(long)
 			}
 
 			data.append(data_line)
@@ -170,14 +176,11 @@ class RealRideParser():
 
 		data = []
 		for line in gps_file.readlines():
-			acc_s = json.loads(line[35:])
-			acc_s = list(map(lambda x: float(x.replace(',', '.')), acc_s))
 
-			original_time_string = line[:34]
+			parsed_data = self.parse_data_line(line)
 
-			data_date = datetime.strptime(original_time_string, app_date_format)
-			timestamp = data_date.timestamp()
-			# print("date: ", data_date, timestamp)
+			timestamp = parsed_data[0]
+			acc_s = parsed_data[1:4]
 
 			data_line = {
 				"timestamp": timestamp,
