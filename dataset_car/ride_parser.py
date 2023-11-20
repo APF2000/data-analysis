@@ -54,7 +54,13 @@ class RealRideParser():
 			param_name_to_df[param_name] = param_df
 
 		speed_series = param_name_to_df["SPEED"]["SPEED"]
-		convert_vel_to_float = lambda x : float(x.replace("km/h", ""))
+		
+		def convert_vel_to_float(x):
+			vel = x.replace("km/h", "")
+			if vel == "":
+				return 0
+			return float(vel)
+		
 		param_name_to_df["SPEED"]["SPEED"] = speed_series.apply(convert_vel_to_float)
 
 		return param_name_to_df
@@ -295,7 +301,7 @@ class RealRideParser():
 		plt.close(fig)
 
 	def generate_graph_for_orientation(self):
-		fig, axs = plt.subplots(ncols=1, nrows=4)
+		fig, axs = plt.subplots(ncols=1, nrows=3)
 		orientation_df = self.orientation_df
 
 		timestamp = orientation_df["timestamp"]
