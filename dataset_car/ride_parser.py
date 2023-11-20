@@ -25,6 +25,8 @@ class RealRideParser():
 		self.gps_df = self.create_gps_df()
 		self.accelerometer_df = self.create_accelerometer_df()
 		self.obd_data = self.create_obd_df()
+		self.orientation_df = self.create_orientation_df()
+		self.bearing_df = self.create_bearing_df()
 
 	def create_obd_df(self):
 		engine_data_path = os.path.join(self.root_dir, "DELETEME.txt")
@@ -116,6 +118,46 @@ class RealRideParser():
 		return tuple(parsed_data_list)
 
 
+	def create_orientation_df(self):
+		orientation_file_path = os.path.join(self.root_dir, "DELETEME_ORIENTATION.txt")
+		orientation_file = open(orientation_file_path, "r")
+
+		data = []
+		for line in orientation_file.readlines():
+
+			timestamp, azimuth, pitch, roll = self.parse_data_line(line)
+
+			data_line = {
+				"timestamp": timestamp,
+				"azimuth": float(azimuth),
+				"pitch": float(pitch),
+				"roll": float(roll)
+			}
+
+			data.append(data_line)
+
+		return pd.DataFrame(data)
+
+
+	def create_bearing_df(self):
+		bearing_file_path = os.path.join(self.root_dir, "DELETEME_BEARING.txt")
+		bearing_file = open(bearing_file_path, "r")
+
+		data = []
+		for line in bearing_file.readlines():
+
+			timestamp, angle = self.parse_data_line(line)
+
+			data_line = {
+				"timestamp": timestamp,
+				"angle": float(angle)
+			}
+
+			data.append(data_line)
+
+		return pd.DataFrame(data)
+
+
 	def create_gps_df(self):
 		gps_file_path = os.path.join(self.root_dir, "DELETEME_GPS.txt")
 		gps_file = open(gps_file_path, "r")
@@ -147,6 +189,7 @@ class RealRideParser():
 
 			timestamp = parsed_data[0]
 			acc_s = parsed_data[1:4]
+			gravity_vec = parsed_data[4:7]
 
 			data_line = {
 				"timestamp": timestamp,
@@ -155,7 +198,10 @@ class RealRideParser():
 				"acc_z": acc_s[2],
 				"filtered_acc_x": acc_s[0],
 				"filtered_acc_y": acc_s[1],
-				"filtered_acc_z": acc_s[2]
+				"filtered_acc_z": acc_s[2],
+				"grav_x": gravity_vec[0],
+				"grav_y": gravity_vec[1],
+				"grav_z": gravity_vec[2]
 			}
 
 			data.append(data_line)
