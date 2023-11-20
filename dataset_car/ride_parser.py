@@ -24,14 +24,10 @@ class RealRideParser():
 		self.root_dir = root_dir
 		self.gps_df = self.create_gps_df()
 		self.accelerometer_df = self.create_accelerometer_df()
-		self.obd_data = self.get_data_from_app()
+		self.obd_data = self.create_obd_df()
 
-	def get_data_from_app(self):
+	def create_obd_df(self):
 		engine_data_path = os.path.join(self.root_dir, "DELETEME.txt")
-
-		# ex: Wed Jul 26 22:15:49 GMT+02:00 2023
-		original_date_format = "%a %b %d %H:%M:%S %Z%z %Y"
-		# desired_date_format = "%Y-%m-%d %H:%M:%S"
 
 		param_name_to_df = {}
 
@@ -45,13 +41,9 @@ class RealRideParser():
 			param_name = info_list[0]
 			param_value = info_list[2]
 
-			# print("date: ", date)
-			# print("info_list: ", info_list)
-
-			data_obj = datetime.strptime(date, original_date_format)
+			data_obj = datetime.strptime(date, app_date_format)
 			timestamp = data_obj
-			timestamp = data_obj.timestamp() # * 1000
-			# print(timestamp)
+			timestamp = data_obj.timestamp()
 
 			create_default_df = (lambda : pd.DataFrame(columns=["timestamp", param_name]))
 			param_df = param_name_to_df.get(param_name, create_default_df())
@@ -74,12 +66,6 @@ class RealRideParser():
 		for i in range(n_samples - 1):
 			time_1, lat_1, long_1 = tuple(gps_df[desired_cols].iloc[i])
 			time_2, lat_2, long_2 = tuple(gps_df[desired_cols].iloc[i + 1])
-
-			# time_1 = time_1.timestamp()
-			# time_2 = time_2.timestamp()
-
-			# print("time_1", time_1)
-			# print("time_2", time_2)
 
 			delta_t = time_2 - time_1 # seconds
 			delta_lat = (lat_2 - lat_1) * math.pi / 180
@@ -106,16 +92,6 @@ class RealRideParser():
 				"SPEED": v_kmh
 			}
 
-			# x1, y1 = pyproj.transform("wgs84", "epsg3035", long_1, lat_1)
-			# print(x1, y1)
-
-			# x2, y2 = pyproj.transform("wgs84", "epsg3035", long_2, lat_2)
-			# print(x2, y2)
-
-			# # a Pythagore's theorem is sufficient to compute an approximate distance
-			# distance_m = np.sqrt((x2-x1)**2 + (y2-y1)**2)
-			# print(distance_m)
-
 			data.append(data_line)
 
 		velocity_df = pd.DataFrame(data)
@@ -124,16 +100,6 @@ class RealRideParser():
 
 	def get_acc_stats(self):
 		acc_df = self.accelerometer_df
-
-		mean_acc = acc_df["acc_resultant"].mean()
-		std_dev_acc = acc_df["acc_resultant"].std()
-		median = acc_df["acc_resultant"].median()
-
-		stats = {
-			"mean_acc": mean_acc,
-			"std_dev_acc": std_dev_acc,
-			"median": median
-		}
 
 		return acc_df["acc_resultant"].describe() #tats
 	
@@ -356,7 +322,7 @@ class UAHRideParser():
 
 		lower_limit = frame_granularity * img_id 
 		upper_limit = frame_granularity * img_id + delta_time_size
-		# print("low up", lower_limit, upper_limit)
+		
 		time_filter = (accelerometer_df.timestamp >= lower_limit) & (accelerometer_df.timestamp < upper_limit)
 		filtered_accelerations_df = accelerometer_df[time_filter]
 
@@ -365,7 +331,6 @@ class UAHRideParser():
 		acc_z = filtered_accelerations_df["acc_z"]
 		timestamp = filtered_accelerations_df["timestamp"]
 
-		# axs[0].scatter(timestamp, acc_x, s=0.1)
 		axs[0].plot(timestamp, filtered_accelerations_df["acc_x"], label="acc_x")
 		axs[0].plot(timestamp, filtered_accelerations_df["filtered_acc_x"], label="filt_acc_x")
 		axs[0].legend(loc='right')
@@ -383,9 +348,6 @@ class UAHRideParser():
 			ax.set_ylim(-0.2, 0.2)
 			ax.set_xlim(lower_limit, upper_limit)
 
-		# axs.legend(loc='center right', bbox_to_anchor=(1.25, 0.5))
-
-		# fig.ylim(-0.2, 0.2)
 		fig.tight_layout()
 
 		imgs_path = os.path.join(self.root_dir, "images")
