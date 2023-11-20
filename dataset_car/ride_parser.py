@@ -294,6 +294,54 @@ class RealRideParser():
 
 		plt.close(fig)
 
+	def generate_graph_for_orientation(self):
+		fig, axs = plt.subplots(ncols=1, nrows=4)
+		orientation_df = self.orientation_df
+
+		timestamp = orientation_df["timestamp"]
+		azimuth = orientation_df["azimuth"]
+		pitch = orientation_df["pitch"]
+		roll = orientation_df["roll"]
+
+		# min_timestamp = orientation_df["timestamp"].iloc[0]
+
+		for ax in axs:
+			ax.grid(True)
+
+		# axs[0].scatter(timestamp, acc_x, s=0.1)
+		axs[0].plot(timestamp, azimuth)
+		axs[0].set_title("azimuth")
+
+		axs[1].plot(timestamp, pitch)
+		axs[1].set_title("pitch")
+
+		axs[2].plot(timestamp, roll)    
+		axs[2].set_title("roll")
+
+		fig.tight_layout()
+		plt.grid(True)
+
+		# plt.scatter(timestamp, acc_x, s=0.1)
+		plt.title("Orientation angle")
+
+		plt.show()
+
+	def generate_graph_for_bearing(self):
+		bearing_df = self.bearing_df
+
+		# min_timestamp = bearing_df["timestamp"].iloc[0]
+
+		timestamp = bearing_df["timestamp"]
+		angle = bearing_df["angle"]
+
+		plt.grid(True)
+
+		# plt.scatter(timestamp, acc_x, s=0.1)
+		plt.plot(timestamp, angle)
+		plt.title("Bearing angle")
+
+		plt.show()
+
 
 class UAHRideParser():
 	def __init__(self, root_dir):
