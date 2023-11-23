@@ -15,18 +15,67 @@ import math
 import pyproj
 import matplotlib.dates as mdates
 
+import re
+
 
 # Fri Nov 03 13:37:58 GMT-03:00 2023
 app_date_format = "%a %b %d %H:%M:%S %Z%z %Y"
 
+# def std_param_name(name):
+# 	name = name.strip()
+# 	name = re.sub(r"\s+", "_", name)
+# 	name = re.sub(r"[^$/\w]", "", name)
+# 	return name.lower()
+
 class RealRideParser():
 	def __init__(self, root_dir):
 		self.root_dir = root_dir
+
+		self.obd_data = self.create_obd_df()
 		self.gps_df = self.create_gps_df()
 		self.accelerometer_df = self.create_accelerometer_df()
-		self.obd_data = self.create_obd_df()
 		self.orientation_df = self.create_orientation_df()
 		self.bearing_df = self.create_bearing_df()
+
+	def generate_temp_graphs(self):
+		n_params = len(self.temp_params)
+		fig, axs = plt.subplots(ncols=1, nrows=n_params)
+
+		for i in range(n_params):
+			param = self.temp_params[i]
+
+			df_to_display = self.obd_data[param]
+			timestamp = df_to_display["timestamp"]
+			param_series = df_to_display[param]
+
+			axs[i].plot(timestamp, param_series, label=param)
+			axs[i].legend(loc='right')
+			axs[i].set_title(param)
+
+		fig.tight_layout()
+		plt.grid(True)
+
+		plt.show()
+
+	def generate_pressure_graphs(self):
+		n_params = len(self.pressure_params)
+		fig, axs = plt.subplots(ncols=1, nrows=n_params)
+
+		for i in range(n_params):
+			param = self.pressure_params[i]
+
+			df_to_display = self.obd_data[param]
+			timestamp = df_to_display["timestamp"]
+			param_series = df_to_display[param]
+
+			axs[i].plot(timestamp, param_series, label=param)
+			axs[i].legend(loc='right')
+			axs[i].set_title(param)
+
+		fig.tight_layout()
+		plt.grid(True)
+
+		plt.show()
 
 	def create_obd_df(self):
 		engine_data_path = os.path.join(self.root_dir, "DELETEME.txt")
@@ -62,6 +111,37 @@ class RealRideParser():
 			return float(vel)
 		
 		param_name_to_df["SPEED"]["SPEED"] = speed_series.apply(convert_vel_to_float)
+
+		def convert_temp_to_float(x):
+			temp = x.replace("C", "")
+			if temp == "":
+				return 0
+			return float(temp)
+
+		def convert_pressure_to_float(x):
+			pressure = x.replace("kPa", "")
+			if pressure == "":
+				return 0
+			return float(pressure)
+
+		temp_params = []
+		pressure_params = []
+		for param_name in param_name_to_df:
+			standardized_param_name = param_name.lower()
+			param_series = param_name_to_df[param_name][param_name]
+
+			if "temp" in standardized_param_name:
+				temp_params.append(param_name)
+
+				param_name_to_df[param_name][param_name] = param_series.apply(convert_temp_to_float)
+
+			if "pressure" in standardized_param_name:
+				pressure_params.append(param_name)
+
+				param_name_to_df[param_name][param_name] = param_series.apply(convert_pressure_to_float)
+
+		self.temp_params = temp_params
+		self.pressure_params = pressure_params
 
 		# immutable_data = []
 		# mutable_data = [] 
