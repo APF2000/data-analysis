@@ -63,6 +63,24 @@ class RealRideParser():
 		
 		param_name_to_df["SPEED"]["SPEED"] = speed_series.apply(convert_vel_to_float)
 
+		# immutable_data = []
+		# mutable_data = [] 
+		# for param_name, df in param_name_to_df.items():
+		# 	all_values_set = set(df[param_name])
+		# 	if len(all_values_set) <= 2:
+		# 		immutable_data.append(param_name)
+		# 	else:
+		# 		mutable_data.append(param_name)
+
+		# print("immutable_data")
+		# for data in immutable_data:
+		# 	print(data)
+
+		# print("mutable_data")
+		# for data in mutable_data:
+		# 	print(data)
+
+
 		return param_name_to_df
 
 	def create_velocity_from_gps_df(self):
