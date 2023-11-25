@@ -77,6 +77,26 @@ class RealRideParser():
 
 		plt.show()
 
+	def generate_other_graphs(self):
+		n_params = len(self.other_params)
+		fig, axs = plt.subplots(ncols=1, nrows=n_params)
+
+		for i in range(n_params):
+			param = self.other_params[i]
+
+			df_to_display = self.obd_data[param]
+			timestamp = df_to_display["timestamp"]
+			param_series = df_to_display[param]
+
+			axs[i].plot(timestamp, param_series, label=param)
+			axs[i].legend(loc='right')
+			axs[i].set_title(param)
+
+		fig.tight_layout()
+		plt.grid(True)
+
+		plt.show()
+
 	def create_obd_df(self):
 		engine_data_path = os.path.join(self.root_dir, "DELETEME.txt")
 
@@ -110,13 +130,24 @@ class RealRideParser():
 				return 0
 			return float(vel)
 		
+		def convert_rpm_to_float(x):
+			rpm = x.replace("RPM", "")
+			if rpm == "":
+				return 0
+			return float(rpm)
+		
 		param_name_to_df["SPEED"]["SPEED"] = speed_series.apply(convert_vel_to_float)
+		param_name_to_df["ENGINE_RPM"]["ENGINE_RPM"] = param_name_to_df["ENGINE_RPM"]["ENGINE_RPM"].apply(convert_rpm_to_float)
 
 		def convert_temp_to_float(x):
 			temp = x.replace("C", "")
 			if temp == "":
 				return 0
-			return float(temp)
+			try:
+				return float(temp)
+			except:
+				print("cannot convert %s to float" % temp)
+				return 0
 
 		def convert_pressure_to_float(x):
 			pressure = x.replace("kPa", "")
@@ -126,6 +157,7 @@ class RealRideParser():
 
 		temp_params = []
 		pressure_params = []
+		other_params = []
 		for param_name in param_name_to_df:
 			standardized_param_name = param_name.lower()
 			param_series = param_name_to_df[param_name][param_name]
@@ -135,13 +167,20 @@ class RealRideParser():
 
 				param_name_to_df[param_name][param_name] = param_series.apply(convert_temp_to_float)
 
-			if "pressure" in standardized_param_name:
+			elif "pressure" in standardized_param_name:
 				pressure_params.append(param_name)
 
 				param_name_to_df[param_name][param_name] = param_series.apply(convert_pressure_to_float)
 
+			else:
+				other_params.append(param_name)
+
+				# param_name_to_df[param_name][param_name] = param_series.apply(convert_other_to_float)
+
+
 		self.temp_params = temp_params
 		self.pressure_params = pressure_params
+		self.other_params = other_params
 
 		# immutable_data = []
 		# mutable_data = [] 
