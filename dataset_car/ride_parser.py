@@ -21,6 +21,9 @@ import re
 # Fri Nov 03 13:37:58 GMT-03:00 2023
 app_date_format = "%a %b %d %H:%M:%S %Z%z %Y"
 
+# "yyyy-MM-dd HH:mm:ss.SSS"
+app_date_format = "%Y-%m-%d %H:%M:%S.%f"
+
 # def std_param_name(name):
 # 	name = name.strip()
 # 	name = re.sub(r"\s+", "_", name)
@@ -31,11 +34,90 @@ class RealRideParser():
 	def __init__(self, root_dir):
 		self.root_dir = root_dir
 
+		# TODO: remover outliers antes de tudo
+
 		self.obd_data = self.create_obd_df()
 		self.gps_df = self.create_gps_df()
 		self.accelerometer_df = self.create_accelerometer_df()
 		self.orientation_df = self.create_orientation_df()
 		self.bearing_df = self.create_bearing_df()
+
+	def calculate_acc_stats_near_stop(self):
+		vels_from_obd_df = self.obd_data["SPEED"]
+		acc_from_android_df = self.accelerometer_df
+
+		stopped_speeds = vels_from_obd_df[vels_from_obd_df["SPEED"] <= 0.1]
+		stopped_speeds_indices = stopped_speeds.index
+		qtty_of_indices = len(stopped_speeds_indices)
+
+		acceleration_starts = []
+		acceleration_endings = [0]
+		for i in range(qtty_of_indices - 1):
+			row_id_1 = stopped_speeds_indices[i]
+			row_id_2 = stopped_speeds_indices[i + 1]
+
+			if row_id_1 != row_id_2 - 1:
+				acceleration_starts.append(row_id_1)
+				acceleration_endings.append(row_id_2)
+
+		acceleration_starts.append(stopped_speeds_indices[-1])
+
+		acceleration_start_timestamps = vels_from_obd_df.filter(items=acceleration_starts, axis=0)["timestamp"]
+		acceleration_ending_timestamps = vels_from_obd_df.filter(items=acceleration_endings, axis=0)["timestamp"]
+
+		####################################
+
+		print(acceleration_starts)
+		print(len(acceleration_starts))
+		print(len(acceleration_start_timestamps))
+		# acc_from_android_df
+		# for timestamp in acceleration_start_timestamps:
+
+		re_acceleration_avg_s = []
+		last_acc_start_id = 0
+		# cut off first from endings and first from starts
+		for i in range(len(acceleration_starts) - 2):
+			# print(i)
+
+			non_zero_vel_beg_id = acceleration_starts[i]
+			non_zero_vel_end_id = acceleration_endings[i + 1]
+
+			start_timestamp = vels_from_obd_df.iloc[non_zero_vel_beg_id]["timestamp"]
+			
+			# vel_index = 
+
+			acc_list = []
+			for j in range(non_zero_vel_beg_id, non_zero_vel_end_id - 1):
+				vel_1 = vels_from_obd_df.iloc[j]["SPEED"]
+				vel_2 = vels_from_obd_df.iloc[j + 1]["SPEED"]
+
+				if vel_1 > vel_2:
+					break
+
+				acc_index = acc_from_android_df["timestamp"].searchsorted(start_timestamp)
+				new_acc = acc_from_android_df["acceleration"].iloc[acc_index]
+
+				acc_list.append(new_acc)
+
+			last_acc_start_id = non_zero_vel_beg_id #acc_index
+
+			re_acceleration_avg = np.average(acc_list)
+			re_acceleration_avg_s.append(re_acceleration_avg)
+			
+			# print("acc_list", acc_list)
+			# print("re_acceleration_avg", re_acceleration_avg)
+
+		# 	acc_from_android_df.iloc[acc_index]["acceleration"]
+
+		# acceleration_start_timestamps, 
+		print(np.average(re_acceleration_avg_s))
+		print(np.std(re_acceleration_avg_s))
+		print(np.mean(re_acceleration_avg_s))
+		print(np.median(re_acceleration_avg_s))
+		print(np.quantile(re_acceleration_avg_s, 0.25))
+		print(np.quantile(re_acceleration_avg_s, 0.75))
+		print(min(re_acceleration_avg_s))
+		print(max(re_acceleration_avg_s))
 
 	def generate_temp_graphs(self):
 		n_params = len(self.temp_params)
