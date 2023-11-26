@@ -22,7 +22,7 @@ import re
 app_date_format = "%a %b %d %H:%M:%S %Z%z %Y"
 
 # "yyyy-MM-dd HH:mm:ss.SSS"
-app_date_format = "%Y-%m-%d %H:%M:%S.%f"
+# app_date_format = "%Y-%m-%d %H:%M:%S.%f"
 
 # def std_param_name(name):
 # 	name = name.strip()
@@ -95,7 +95,7 @@ class RealRideParser():
 					break
 
 				acc_index = acc_from_android_df["timestamp"].searchsorted(start_timestamp)
-				new_acc = acc_from_android_df["acceleration"].iloc[acc_index]
+				new_acc = acc_from_android_df["acc_resultant"].iloc[acc_index]
 
 				acc_list.append(new_acc)
 
@@ -188,8 +188,8 @@ class RealRideParser():
 		for data_entry in engine_data.split("\n"):
 			data_entry = data_entry.replace("NODATA", "0")
 
-			date = data_entry[:34]
-			info_list = json.loads(data_entry[35:])
+			date = data_entry[:34] # [:23]
+			info_list = json.loads(data_entry[35:]) #[24:]
 
 			param_name = info_list[0]
 			param_value = info_list[2]
