@@ -166,6 +166,8 @@ dataset_car/result_image.png
 dataset_car/images/*
 status_invest/acoes_brasil.csv
 dataset_car/RealData/*
+dataset_car/CrimeData/*
 status_invest/fiis.csv
 dataset_car/test.ipynb
 dataset_car/test2.ipynb
+possible_features.txt
