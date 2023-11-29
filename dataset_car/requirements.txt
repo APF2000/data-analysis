@@ -6,3 +6,5 @@ folium
 geopy
 pyproj
 scipy
+plotly-express
+nbformat
