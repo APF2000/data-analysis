@@ -19,12 +19,14 @@ import re
 
 import folium
 
+import requests
+
 
 # Fri Nov 03 13:37:58 GMT-03:00 2023
-app_date_format = "%a %b %d %H:%M:%S %Z%z %Y"
+old_app_date_format = "%a %b %d %H:%M:%S %Z%z %Y"
 
 # "yyyy-MM-dd HH:mm:ss.SSS"
-# app_date_format = "%Y-%m-%d %H:%M:%S.%f"
+new_app_date_format = "%Y-%m-%d %H:%M:%S.%f"
 
 # def std_param_name(name):
 # 	name = name.strip()
@@ -35,13 +37,17 @@ app_date_format = "%a %b %d %H:%M:%S %Z%z %Y"
 class RealRideParser():
 
 	car_crimes_df = None
+	lambda_url = "https://pntdpvkdsc.execute-api.us-east-1.amazonaws.com/default/app_data"
 
 	def __init__(self, should_get_data_from_database=False, **params):
+
 		if should_get_data_from_database:
-			pass
+			self.user_id = params["user_id"]
+			self.date_beg = params["date_beg"]
+			self.date_end = params["date_end"]
 		else:
 			self.root_dir = params["root_dir"]
-			
+
 		self.should_get_data_from_database = should_get_data_from_database
 
 		# TODO: remover outliers antes de tudo
@@ -102,7 +108,7 @@ class RealRideParser():
 
 				# TODO: calcular proporcao de crimes num raio de 100 metros em comparação com um raio de 300m
 				if dist_from_target <= 100:
-					print(reported_crime_lat_long, dist_from_target)
+					# print(reported_crime_lat_long, dist_from_target)
 					dangerous_path_lat_longs.append(path_lat_long)
 
 		for dangerous_latlong in dangerous_path_lat_longs:			
@@ -281,7 +287,16 @@ class RealRideParser():
 
 	def create_obd_df(self):
 		if self.should_get_data_from_database:
-			pass
+			request_body = {
+				"method": "get_obd_info",
+				"data": {
+					"user_id": self.user_id,
+					"date_beg": self.date_beg,
+					"date_end": self.date_end
+				}
+			}
+			
+			engine_data = requests.post(RealRideParser.lambda_url, json=request_body)
 		else:
 			engine_data_path = os.path.join(self.root_dir, "DELETEME.txt")
 			engine_data = open(engine_data_path, "r").read().strip()
@@ -290,13 +305,19 @@ class RealRideParser():
 		for data_entry in engine_data.split("\n"):
 			data_entry = data_entry.replace("NODATA", "0")
 
-			date = data_entry[:34] # [:23]
-			info_list = json.loads(data_entry[35:]) #[24:]
+			try:
+				date = data_entry[:34]
+				info_list = json.loads(data_entry[35:])
+				data_obj = datetime.strptime(date, old_app_date_format)
+			except Exception as e:
+				date = data_entry[:23]
+				info_list = json.loads(data_entry[24:])
+				data_obj = datetime.strptime(date, new_app_date_format)
+
 
 			param_name = info_list[0]
 			param_value = info_list[2]
 
-			data_obj = datetime.strptime(date, app_date_format)
 			timestamp = data_obj
 			timestamp = data_obj.timestamp()
 
@@ -438,7 +459,11 @@ class RealRideParser():
 		actual_data = list(map(dot_convert_foo, actual_data))
 		original_time_string = line[:34]
 
-		data_date = datetime.strptime(original_time_string, app_date_format)
+		try:
+			data_date = datetime.strptime(original_time_string, old_app_date_format)
+		except:
+			data_date = datetime.strptime(original_time_string, new_app_date_format)
+
 		timestamp = data_date.timestamp()
 
 		parsed_data_list = [timestamp] + actual_data
