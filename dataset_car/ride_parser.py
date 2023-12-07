@@ -58,7 +58,7 @@ class RealRideParser():
 		sp_crimes_df = pd.read_csv(sp_crimes_path)
 		RealRideParser.car_crimes_df = sp_crimes_df[sp_crimes_df["descricao"].str.contains("carro", na=False)]
 
-	def calculate_crime_stats(self):
+	def calculate_crime_stats(self, map):
 		# definir raio de relevancia:
 		# https://www.prefeitura.sp.gov.br/cidade/secretarias/subprefeituras/subprefeituras/dados_demograficos/index.php?p=12758
 
@@ -87,12 +87,23 @@ class RealRideParser():
 		# https://www.google.com.br/maps/place/S%C3%A9/@-23.5509876,-46.6345475,18.03z/data=!4m6!3m5!1s0x94ce59aa5b004689:0x37c720ec525c8bd9!8m2!3d-23.5500991!4d-46.633321!16s%2Fm%2F0g5583j?entry=ttu
 		dangerous_place_lat_long = (-23.5509876,-46.6345475)
 
-		for _, reported_crime_lat_long in RealRideParser.car_crimes_df[["latitude", "longitude"]].iterrows():
-			reported_crime_lat_long = tuple(reported_crime_lat_long)
-			dist_from_target = get_dist_from_coords(dangerous_place_lat_long, reported_crime_lat_long)
+		dangerous_path_lat_longs = []
+		for path_lat_long in self.gps_df[["lat", "long"]].iterrows():
+			path_lat_long = tuple(path_lat_long[1])
 
-			if dist_from_target <= 100:
-				print(reported_crime_lat_long, dist_from_target)
+			for _, reported_crime_lat_long in RealRideParser.car_crimes_df[["latitude", "longitude"]].iterrows():
+				reported_crime_lat_long = tuple(reported_crime_lat_long)
+				dist_from_target = get_dist_from_coords(path_lat_long, reported_crime_lat_long)
+
+				# TODO: calcular proporcao de crimes num raio de 100 metros em comparação com um raio de 300m
+				if dist_from_target <= 100:
+					print(reported_crime_lat_long, dist_from_target)
+					dangerous_path_lat_longs.append(path_lat_long)
+
+		for dangerous_latlong in dangerous_path_lat_longs:			
+			folium.Marker(dangerous_latlong, icon=folium.Icon(icon="circle-exclamation", prefix="fa", color="red")).add_to(map)
+
+		return map
 
 
 	def create_route_map(self):
@@ -112,15 +123,15 @@ class RealRideParser():
 	
 		map = folium.Map(location=[mean_lat, mean_long], zoom_start=14, control_scale=True)
 
-		folium.Marker(start_lat_long, popup="start").add_to(map)
-		folium.Marker(end_lat_long, popup="end").add_to(map)
+		folium.Marker(start_lat_long, popup="start", icon=folium.Icon(icon="flag_checkered", prefix="fa", color="blue")).add_to(map)
+		folium.Marker(end_lat_long, popup="end", icon=folium.Icon(icon="x", prefix="fa", color="red")).add_to(map)
 
 		for i in range(qtty_data - 1):
 			location_1 = lat_longs[i]
 			location_2 = lat_longs[i + 1]
 
 			folium.PolyLine([location_1, location_2],
-							color='red',
+							color="red",
 							weight=5,
 							opacity=0.4).add_to(map)
 
@@ -215,7 +226,7 @@ class RealRideParser():
 			param_series = df_to_display[param]
 
 			axs[i].plot(timestamp, param_series, label=param)
-			axs[i].legend(loc='right')
+			axs[i].legend(loc="right")
 			axs[i].set_title(param)
 
 		fig.tight_layout()
@@ -235,7 +246,7 @@ class RealRideParser():
 			param_series = df_to_display[param]
 
 			axs[i].plot(timestamp, param_series, label=param)
-			axs[i].legend(loc='right')
+			axs[i].legend(loc="right")
 			axs[i].set_title(param)
 
 		fig.tight_layout()
@@ -255,7 +266,7 @@ class RealRideParser():
 			param_series = df_to_display[param]
 
 			axs[i].plot(timestamp, param_series, label=param)
-			axs[i].legend(loc='right')
+			axs[i].legend(loc="right")
 			axs[i].set_title(param)
 
 		fig.tight_layout()
@@ -416,7 +427,7 @@ class RealRideParser():
 	
 	def parse_data_line(self, line):
 		actual_data = json.loads(line[35:])
-		dot_convert_foo = lambda x: float(x.replace(',', '.'))
+		dot_convert_foo = lambda x: float(x.replace(",", "."))
 		actual_data = list(map(dot_convert_foo, actual_data))
 		original_time_string = line[:34]
 
@@ -549,11 +560,11 @@ class RealRideParser():
 		acc_resultant = filtered_accelerations_df["acc_resultant"]
 		timestamp = filtered_accelerations_df["timestamp"]
 
-		# fig, axs = plt.subplots(1, 1, figsize=(6.4, 3), layout='constrained')
+		# fig, axs = plt.subplots(1, 1, figsize=(6.4, 3), layout="constrained")
 		# common to all three:
 		# for ax in axs:
 
-		# ax.plot('date', 'adj_close', data=data)
+		# ax.plot("date", "adj_close", data=data)
 		# plt.plot("timestamp", "SPEED", data=vel_df)
 		for ax in axs:
 			# Major ticks every half year, minor ticks every second,
@@ -561,15 +572,15 @@ class RealRideParser():
 			# ax.xaxis.set_minor_locator(mdates.MinuteLocator())
 			ax.grid(True)
 			
-			# ax.xaxis.set_major_formatter(mdates.DateFormatter('%H:%M'))
-			# # Rotates and right-aligns the x labels so they don't crowd each other.
-			# for label in ax.get_xticklabels(which='major'):
-			# 	label.set(rotation=30, horizontalalignment='right')
+			# ax.xaxis.set_major_formatter(mdates.DateFormatter("%H:%M"))
+			# # Rotates and right-aligns the x labels so they don"t crowd each other.
+			# for label in ax.get_xticklabels(which="major"):
+			# 	label.set(rotation=30, horizontalalignment="right")
 
 		# axs[0].scatter(timestamp, acc_x, s=0.1)
 		axs[0].plot(timestamp, acc_x)
 		axs[0].plot(timestamp, filtered_accelerations_df["filtered_acc_x"])
-		# axs[0].legend(loc='right')
+		# axs[0].legend(loc="right")
 		axs[0].set_title("acc_x")
 
 		axs[1].plot(timestamp, acc_y)
@@ -588,7 +599,7 @@ class RealRideParser():
 			# ax.set_ylim(-10, 10)
 			ax.set_xlim(lower_limit, upper_limit)
 
-		# axs.legend(loc='center right', bbox_to_anchor=(1.25, 0.5))
+		# axs.legend(loc="center right", bbox_to_anchor=(1.25, 0.5))
 
 		# fig.ylim(-0.2, 0.2)
 		fig.tight_layout()
@@ -690,7 +701,7 @@ class UAHRideParser():
 			# axs[0].scatter(timestamp, acc_x, s=0.1)
 			axs[0].plot(timestamp, accelerometer_df["acc_x"], label="acc_x")
 			axs[0].plot(timestamp, accelerometer_df["filtered_acc_x"], label="filt_acc_x")
-			axs[0].legend(loc='right')
+			axs[0].legend(loc="right")
 			axs[0].set_title("acc_x")
 
 			axs[1].plot(timestamp, acc_y)
@@ -707,14 +718,14 @@ class UAHRideParser():
 
 			
 
-			# axs.legend(loc='center right', bbox_to_anchor=(1.25, 0.5))
+			# axs.legend(loc="center right", bbox_to_anchor=(1.25, 0.5))
 
 			fig.tight_layout()
 
 			# plt.show()
 
 			img_buf = io.BytesIO()
-			plt.savefig(img_buf, format='png')
+			plt.savefig(img_buf, format="png")
 
 			yield img_buf
 				
@@ -736,7 +747,7 @@ class UAHRideParser():
 
 		axs[0].plot(timestamp, filtered_accelerations_df["acc_x"], label="acc_x")
 		axs[0].plot(timestamp, filtered_accelerations_df["filtered_acc_x"], label="filt_acc_x")
-		axs[0].legend(loc='right')
+		axs[0].legend(loc="right")
 		axs[0].set_title("acc_x")
 
 		axs[1].plot(timestamp, acc_y)
