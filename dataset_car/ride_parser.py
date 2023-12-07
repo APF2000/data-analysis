@@ -36,8 +36,13 @@ class RealRideParser():
 
 	car_crimes_df = None
 
-	def __init__(self, root_dir):
-		self.root_dir = root_dir
+	def __init__(self, should_get_data_from_database=False, **params):
+		if should_get_data_from_database:
+			pass
+		else:
+			self.root_dir = params["root_dir"]
+			
+		self.should_get_data_from_database = should_get_data_from_database
 
 		# TODO: remover outliers antes de tudo
 
@@ -275,11 +280,13 @@ class RealRideParser():
 		plt.show()
 
 	def create_obd_df(self):
-		engine_data_path = os.path.join(self.root_dir, "DELETEME.txt")
+		if self.should_get_data_from_database:
+			pass
+		else:
+			engine_data_path = os.path.join(self.root_dir, "DELETEME.txt")
+			engine_data = open(engine_data_path, "r").read().strip()
 
 		param_name_to_df = {}
-
-		engine_data = open(engine_data_path, "r").read().strip()
 		for data_entry in engine_data.split("\n"):
 			data_entry = data_entry.replace("NODATA", "0")
 
@@ -439,8 +446,11 @@ class RealRideParser():
 
 
 	def create_orientation_df(self):
-		orientation_file_path = os.path.join(self.root_dir, "DELETEME_ORIENTATION.txt")
-		orientation_file = open(orientation_file_path, "r")
+		if self.should_get_data_from_database:
+			pass
+		else:
+			orientation_file_path = os.path.join(self.root_dir, "DELETEME_ORIENTATION.txt")
+			orientation_file = open(orientation_file_path, "r")
 
 		data = []
 		for line in orientation_file.readlines():
@@ -460,8 +470,11 @@ class RealRideParser():
 
 
 	def create_bearing_df(self):
-		bearing_file_path = os.path.join(self.root_dir, "DELETEME_BEARING.txt")
-		bearing_file = open(bearing_file_path, "r")
+		if self.should_get_data_from_database:
+			pass
+		else:
+			bearing_file_path = os.path.join(self.root_dir, "DELETEME_BEARING.txt")
+			bearing_file = open(bearing_file_path, "r")
 
 		data = []
 		for line in bearing_file.readlines():
@@ -479,8 +492,11 @@ class RealRideParser():
 
 
 	def create_gps_df(self):
-		gps_file_path = os.path.join(self.root_dir, "DELETEME_GPS.txt")
-		gps_file = open(gps_file_path, "r")
+		if self.should_get_data_from_database:
+			pass
+		else:
+			gps_file_path = os.path.join(self.root_dir, "DELETEME_GPS.txt")
+			gps_file = open(gps_file_path, "r")
 
 		data = []
 		for line in gps_file.readlines():
@@ -497,8 +513,11 @@ class RealRideParser():
 
 		return pd.DataFrame(data)
 
-	def create_accelerometer_df(self):
-		accelerometer_file_path = os.path.join(self.root_dir, "DELETEME_ACCELERATION.txt")
+	def create_accelerometer_df(self):		
+		if self.should_get_data_from_database:
+			pass
+		else:
+			accelerometer_file_path = os.path.join(self.root_dir, "DELETEME_ACCELERATION.txt")
 
 		gps_file = open(accelerometer_file_path, "r")
 
