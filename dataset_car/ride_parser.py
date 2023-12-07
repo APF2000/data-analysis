@@ -532,7 +532,7 @@ class RealRideParser():
 
 		return acc_df
 
-	def foo_for_real_data(self, frame_granularity, delta_time_size, img_id):
+	def generate_3_axis_acc_graph(self, frame_granularity, delta_time_size, img_id):
 		fig, axs = plt.subplots(ncols=1, nrows=4)
 
 		accelerometer_df = self.accelerometer_df
