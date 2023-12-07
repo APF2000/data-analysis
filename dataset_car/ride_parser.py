@@ -17,6 +17,8 @@ import matplotlib.dates as mdates
 
 import re
 
+import folium
+
 
 # Fri Nov 03 13:37:58 GMT-03:00 2023
 app_date_format = "%a %b %d %H:%M:%S %Z%z %Y"
@@ -31,6 +33,9 @@ app_date_format = "%a %b %d %H:%M:%S %Z%z %Y"
 # 	return name.lower()
 
 class RealRideParser():
+
+	car_crimes_df = None
+
 	def __init__(self, root_dir):
 		self.root_dir = root_dir
 
@@ -41,6 +46,85 @@ class RealRideParser():
 		self.accelerometer_df = self.create_accelerometer_df()
 		self.orientation_df = self.create_orientation_df()
 		self.bearing_df = self.create_bearing_df()
+
+		# https://www.kaggle.com/code/jacekplonowski/sao-paulo-crime-eda/input?select=BO_2016.csv
+		bo_2016_path = os.path.join("CrimeData", "BO_2016.csv")
+		bo_2016_df = pd.read_csv(bo_2016_path)
+
+		# https://www.kaggle.com/datasets/danlessa/geospatial-sao-paulo-crime-database/
+		# https://www.kaggle.com/code/anagagodasilva/s-o-paulo-crime-maps-with-plotly/notebook
+		sp_crimes_path = os.path.join("CrimeData", "crimes_por_bairro_sao_paulo.csv")
+
+		sp_crimes_df = pd.read_csv(sp_crimes_path)
+		RealRideParser.car_crimes_df = sp_crimes_df[sp_crimes_df["descricao"].str.contains("carro", na=False)]
+
+	def calculate_crime_stats(self):
+		# definir raio de relevancia:
+		# https://www.prefeitura.sp.gov.br/cidade/secretarias/subprefeituras/subprefeituras/dados_demograficos/index.php?p=12758
+
+		def get_dist_from_coords(coords_1, coords_2):
+			lat_1 = coords_1[0]
+			long_1 = coords_1[1]
+
+			lat_2 = coords_2[0]
+			long_2 = coords_2[1]
+
+			delta_lat = (lat_2 - lat_1) * math.pi / 180
+			delta_long = (long_1 - long_2) * math.pi / 180
+
+			# https://stackoverflow.com/questions/639695/how-to-convert-latitude-or-longitude-to-meters
+			R = 6378.137 # radius of earth in KM
+
+			a_1 = math.sin(delta_lat/2) ** 2
+			a_2 = math.cos(lat_1 * math.pi / 180) * math.cos(lat_2 * math.pi / 180) * math.sin(delta_long/2) ** 2
+			a = a_1 + a_2
+
+			c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
+			delta_distance = (R * c) * 1000 # meters
+
+			return delta_distance
+		
+		# https://www.google.com.br/maps/place/S%C3%A9/@-23.5509876,-46.6345475,18.03z/data=!4m6!3m5!1s0x94ce59aa5b004689:0x37c720ec525c8bd9!8m2!3d-23.5500991!4d-46.633321!16s%2Fm%2F0g5583j?entry=ttu
+		dangerous_place_lat_long = (-23.5509876,-46.6345475)
+
+		for _, reported_crime_lat_long in RealRideParser.car_crimes_df[["latitude", "longitude"]].iterrows():
+			reported_crime_lat_long = tuple(reported_crime_lat_long)
+			dist_from_target = get_dist_from_coords(dangerous_place_lat_long, reported_crime_lat_long)
+
+			if dist_from_target <= 100:
+				print(reported_crime_lat_long, dist_from_target)
+
+
+	def create_route_map(self):
+		latitudes = self.gps_df["lat"]
+		longitudes = self.gps_df["long"]
+
+		qtty_data = len(latitudes)
+
+		lat_longs = [(latitudes.iloc[i], longitudes.iloc[i]) for i in range(qtty_data)]
+
+		start_lat_long = lat_longs[0]
+		end_lat_long = lat_longs[-1]
+
+		mean_lat = latitudes.mean()
+		mean_long = longitudes.mean()
+
+	
+		map = folium.Map(location=[mean_lat, mean_long], zoom_start=14, control_scale=True)
+
+		folium.Marker(start_lat_long, popup="start").add_to(map)
+		folium.Marker(end_lat_long, popup="end").add_to(map)
+
+		for i in range(qtty_data - 1):
+			location_1 = lat_longs[i]
+			location_2 = lat_longs[i + 1]
+
+			folium.PolyLine([location_1, location_2],
+							color='red',
+							weight=5,
+							opacity=0.4).add_to(map)
+
+		return map
 
 	def calculate_acc_stats_near_stop(self):
 		vels_from_obd_df = self.obd_data["SPEED"]
