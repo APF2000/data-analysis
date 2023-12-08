@@ -297,9 +297,10 @@ class RealRideParser():
 			}
 			
 			response = requests.post(RealRideParser.lambda_url, json=request_body)
-			engine_data = json.loads(response.text)
-			engine_data = " ".join(json.dumps(engine_data["data"][0][1:]))
-			engine_data = engine_data.replace('null', '""')
+			response_dict = json.loads(response.text)
+			response_list = response_dict["data"][0][1:]
+			corrected_list = ["" if x is None else x for x in response_list]
+			engine_data = corrected_list[0] + " " + json.dumps([corrected_list[2], corrected_list[2], corrected_list[3]])
 		else:
 			engine_data_path = os.path.join(self.root_dir, "DELETEME.txt")
 			engine_data = open(engine_data_path, "r").read().strip()
