@@ -55,8 +55,10 @@ class RealRideParser():
 		self.obd_data = self.create_obd_df()
 		self.gps_df = self.create_gps_df()
 		self.accelerometer_df = self.create_accelerometer_df()
-		self.orientation_df = self.create_orientation_df()
-		self.bearing_df = self.create_bearing_df()
+
+		if not should_get_data_from_database:
+			self.orientation_df = self.create_orientation_df()
+			self.bearing_df = self.create_bearing_df()
 
 		# https://www.kaggle.com/code/jacekplonowski/sao-paulo-crime-eda/input?select=BO_2016.csv
 		bo_2016_path = os.path.join("CrimeData", "BO_2016.csv")
@@ -298,9 +300,14 @@ class RealRideParser():
 			
 			response = requests.post(RealRideParser.lambda_url, json=request_body)
 			response_dict = json.loads(response.text)
-			response_list = response_dict["data"][0][1:]
-			corrected_list = ["" if x is None else x for x in response_list]
-			engine_data = corrected_list[0] + " " + json.dumps([corrected_list[2], corrected_list[2], corrected_list[3]])
+
+			engine_data_list = []
+			for data in response_dict["data"]:
+				response_list = data[1:]
+				corrected_list = ["" if x is None else x for x in response_list]
+				engine_data = corrected_list[0] + " " + json.dumps([corrected_list[2], corrected_list[2], corrected_list[3]])
+				engine_data_list.append(engine_data)
+			engine_data = "\n".join(engine_data_list)
 		else:
 			engine_data_path = os.path.join(self.root_dir, "DELETEME.txt")
 			engine_data = open(engine_data_path, "r").read().strip()
@@ -322,7 +329,6 @@ class RealRideParser():
 			param_name = info_list[0]
 			param_value = info_list[2]
 
-			timestamp = data_obj
 			timestamp = data_obj.timestamp()
 
 			create_default_df = (lambda : pd.DataFrame(columns=["timestamp", param_name]))
@@ -458,10 +464,16 @@ class RealRideParser():
 		return acc_df["acc_resultant"].describe() #tats
 	
 	def parse_data_line(self, line):
-		actual_data = json.loads(line[35:])
-		dot_convert_foo = lambda x: float(x.replace(",", "."))
-		actual_data = list(map(dot_convert_foo, actual_data))
-		original_time_string = line[:34]
+		try:
+			actual_data = json.loads(line[35:])
+			dot_convert_foo = lambda x: float(x.replace(",", "."))
+			actual_data = list(map(dot_convert_foo, actual_data))
+			original_time_string = line[:34]
+		except:
+			actual_data = json.loads(line[24:])
+			dot_convert_foo = lambda x: float(x.replace(",", "."))
+			actual_data = list(map(dot_convert_foo, actual_data))
+			original_time_string = line[:23]
 
 		try:
 			data_date = datetime.strptime(original_time_string, old_app_date_format)
@@ -522,13 +534,32 @@ class RealRideParser():
 
 	def create_gps_df(self):
 		if self.should_get_data_from_database:
-			pass
+			request_body = {
+				"method": "get_location",
+				"data": {
+					"user_id": self.user_id,
+					"date_beg": self.date_beg,
+					"date_end": self.date_end
+				}
+			}
+			
+			response = requests.post(RealRideParser.lambda_url, json=request_body)
+			response_dict = json.loads(response.text)
+
+			gps_data_list = []
+			for data in response_dict["data"]:
+				response_list = data[1:]
+				corrected_list = ["" if x is None else x for x in response_list]
+				gps_data = corrected_list[0] + " " + json.dumps(corrected_list[2:])
+				gps_data_list.append(gps_data)
+			gps_data = "\n".join(gps_data_list)
 		else:
 			gps_file_path = os.path.join(self.root_dir, "DELETEME_GPS.txt")
-			gps_file = open(gps_file_path, "r")
+			gps_data= open(gps_file_path, "r").read().strip()
 
 		data = []
-		for line in gps_file.readlines():
+
+		for line in gps_data.split("\n"):
 
 			timestamp, lat, long = self.parse_data_line(line)
 
@@ -544,14 +575,32 @@ class RealRideParser():
 
 	def create_accelerometer_df(self):		
 		if self.should_get_data_from_database:
-			pass
+			request_body = {
+				"method": "get_acceleration",
+				"data": {
+					"user_id": self.user_id,
+					"date_beg": self.date_beg,
+					"date_end": self.date_end
+				}
+			}
+			
+			response = requests.post(RealRideParser.lambda_url, json=request_body)
+			response_dict = json.loads(response.text)
+
+			acc_data_list = []
+			for data in response_dict["data"]:
+				response_list = data[1:]
+				corrected_list = ["" if x is None else x for x in response_list]
+				acc_data = corrected_list[0] + " " + json.dumps(corrected_list[2:])
+				acc_data_list.append(acc_data)
+			acc_data = "\n".join(acc_data_list)
 		else:
 			accelerometer_file_path = os.path.join(self.root_dir, "DELETEME_ACCELERATION.txt")
-
-		gps_file = open(accelerometer_file_path, "r")
+			acc_data= open(accelerometer_file_path, "r").read().strip()
 
 		data = []
-		for line in gps_file.readlines():
+
+		for line in acc_data.split("\n"):
 
 			parsed_data = self.parse_data_line(line)
 
