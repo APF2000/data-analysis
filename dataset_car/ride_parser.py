@@ -172,7 +172,8 @@ class RealRideParser():
 		risk_table_graph = self.generate_risk_table(danger_list)
 		# risk_table_graph.savefig("bla.png")
 		# self.calculate_acc_stats_near_stop()
-		map, sudden_acc_percentage = self.generate_sudden_acc(map)
+		map, sudden_acc_percentage, sudden_acc_table = self.generate_sudden_acc(map)
+		sudden_acc_table.show()
 		print("Porcentagem de acelerações acima do normal: ", sudden_acc_percentage)
 
 		return map
@@ -203,6 +204,7 @@ class RealRideParser():
 
 		sudden_acc_df = all_acc_df[all_acc_df["resultant"] >= 5]
 		for _, acc in sudden_acc_df.iterrows():
+
 			lat = acc["lat"]
 			long = acc["long"]
 			
@@ -214,7 +216,14 @@ class RealRideParser():
 			else:
 				dangerous_acc_list.append(2)
 
-			folium.Marker([lat, long], icon=folium.Icon(icon="x", prefix="fa", color="blue")).add_to(map)
+			danger_to_color = {
+				1: "green",
+				2: "orange",
+				3: "red",
+			}			
+			color = danger_to_color[dangerous_acc_list[-1]]
+
+			folium.Marker([lat, long], icon=folium.Icon(icon="car", prefix="fa", color=color)).add_to(map)
 
 		sudden_acc_percentage = len(sudden_acc_df) / len(all_acc_df)
 		sudden_acc_percentage = "%.2f" % (sudden_acc_percentage * 100)
