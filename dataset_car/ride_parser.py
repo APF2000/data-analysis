@@ -171,10 +171,92 @@ class RealRideParser():
 		map, danger_list = self.calculate_crime_stats(map)
 		risk_table_graph = self.generate_risk_table(danger_list)
 		# risk_table_graph.savefig("bla.png")
-		self.calculate_acc_stats_near_stop()
+		# self.calculate_acc_stats_near_stop()
+		map, sudden_acc_percentage = self.generate_sudden_acc(map)
+		print("Porcentagem de acelerações acima do normal: ", sudden_acc_percentage)
 
-	def generate_sudden_acc_df(self):
-		self.accelerometer_df
+		return map
+
+	def generate_sudden_acc(self, map):
+		gps_df = self.gps_df
+		resultant_acc_df = self.accelerometer_df[["timestamp", "remaining_acc_resultant"]].copy()
+
+		data = []
+		for _, acc in resultant_acc_df.iterrows():
+			timestamp = acc["timestamp"]
+			resultant_acc = acc["remaining_acc_resultant"]
+			gps_id = min(len(gps_df) - 1, gps_df["timestamp"].searchsorted(timestamp))
+
+			lat = gps_df.iloc[gps_id]["lat"]
+			long = gps_df.iloc[gps_id]["long"]
+
+			data.append({
+				"timestamp": timestamp,
+				"lat": lat,
+				"long": long,
+				"resultant": resultant_acc
+			})
+
+		all_acc_df = pd.DataFrame(data)
+
+		dangerous_acc_list = []
+
+		sudden_acc_df = all_acc_df[all_acc_df["resultant"] >= 5]
+		for _, acc in sudden_acc_df.iterrows():
+			lat = acc["lat"]
+			long = acc["long"]
+			
+			acc_resultant = float(acc["resultant"])
+			if acc_resultant <= 5:
+				dangerous_acc_list.append(1)
+			elif acc_resultant >= 10:
+				dangerous_acc_list.append(3)
+			else:
+				dangerous_acc_list.append(2)
+
+			folium.Marker([lat, long], icon=folium.Icon(icon="x", prefix="fa", color="blue")).add_to(map)
+
+		sudden_acc_percentage = len(sudden_acc_df) / len(all_acc_df)
+		sudden_acc_percentage = "%.2f" % (sudden_acc_percentage * 100)
+
+		level_to_name = {
+			1: "Aceleração normal",
+			2: "Aceleração média",
+			3: "Aceleração muito alta"
+		}
+		danger_percentage_df = pd.DataFrame({"danger_level": dangerous_acc_list})
+		danger_percentage_df["danger_name"] = danger_percentage_df["danger_level"].map(level_to_name)
+
+		count_df = danger_percentage_df["danger_name"].value_counts().reset_index()
+		count_df.columns = ["danger_name", "count"]
+
+
+		default_rows = pd.DataFrame({"danger_name": ["Aceleração normal", "Aceleração média", "Aceleração muito alta"],
+									"count": [0, 0, 0]})
+
+		merged_df = pd.merge(default_rows, count_df, on="danger_name", how="left").fillna(0)
+		merged_df["count"] = merged_df[["count_x", "count_y"]].max(axis=1)
+
+		percentage_series = merged_df['count'] / merged_df["count"].sum()
+		merged_df["percentage"] = percentage_series.apply(lambda x : "%.2f%%" % (x * 100))
+
+		fig, ax = plt.subplots(figsize=(5, 1))
+
+		ax.xaxis.set_visible(False)
+		ax.yaxis.set_visible(False)
+		ax.set_frame_on(False)
+
+		cell_text = []
+		for i in range(3):
+			cell_text.append([merged_df.iloc[i]["percentage"]])
+
+		tab = plt.table(cellText=cell_text, rowLabels=merged_df["danger_name"], colLabels=["Fração do tempo com cada tipo de aceleração"], loc="center", colWidths=[1, 1.1], cellLoc="center")
+		tab.auto_set_font_size(False)
+		tab.set_fontsize(10)
+		tab.scale(1, 2)
+		# ax.set_title("Contagem de Níveis de Perigo")
+
+		return map, sudden_acc_percentage, plt.gcf()
 
 
 	def generate_risk_table(self, danger_list):
@@ -196,8 +278,8 @@ class RealRideParser():
 		merged_df = pd.merge(default_rows, count_df, on="danger_name", how="left").fillna(0)
 		merged_df["count"] = merged_df[["count_x", "count_y"]].max(axis=1)
 
-		percentage_series = 100 * merged_df['count'] / merged_df["count"].sum()
-		merged_df["percentage"] = percentage_series.apply(lambda x : "%.2f%%" % x)
+		percentage_series = merged_df['count'] / merged_df["count"].sum()
+		merged_df["percentage"] = percentage_series.apply(lambda x : "%.2f%%" % (x * 100))
 
 		fig, ax = plt.subplots(figsize=(5, 1))
 
@@ -384,7 +466,8 @@ class RealRideParser():
 		fig.tight_layout()
 		plt.grid(True)
 
-		plt.show()
+		# plt.show()
+		return plt.gcf()
 
 	def generate_pressure_graphs(self):
 		n_params = len(self.pressure_params)
@@ -404,7 +487,8 @@ class RealRideParser():
 		fig.tight_layout()
 		plt.grid(True)
 
-		plt.show()
+		# plt.show()
+		return plt.gcf()
 
 	def generate_other_graphs(self):
 		n_params = len(self.other_params)
@@ -424,7 +508,8 @@ class RealRideParser():
 		fig.tight_layout()
 		plt.grid(True)
 
-		plt.show()
+		# plt.show()
+		return plt.gcf()
 
 	def create_obd_df(self):
 		if self.should_get_data_from_database:
@@ -890,7 +975,8 @@ class RealRideParser():
 		# plt.scatter(timestamp, acc_x, s=0.1)
 		plt.title("Orientation angle")
 
-		plt.show()
+		# plt.show()
+		return plt.gcf()
 
 	def generate_graph_for_bearing(self):
 		bearing_df = self.bearing_df
@@ -906,7 +992,8 @@ class RealRideParser():
 		plt.plot(timestamp, angle)
 		plt.title("Bearing angle")
 
-		plt.show()
+		# plt.show()
+		return plt.gcf()
 
 
 class UAHRideParser():
