@@ -171,6 +171,10 @@ class RealRideParser():
 		map, danger_list = self.calculate_crime_stats(map)
 		risk_table_graph = self.generate_risk_table(danger_list)
 		# risk_table_graph.savefig("bla.png")
+		self.calculate_acc_stats_near_stop()
+
+	def generate_sudden_acc_df(self):
+		self.accelerometer_df
 
 
 	def generate_risk_table(self, danger_list):
@@ -740,8 +744,11 @@ class RealRideParser():
 			parsed_data = self.parse_data_line(line)
 
 			timestamp = parsed_data[0]
-			acc_s = parsed_data[1:4]
-			gravity_vec = parsed_data[4:7]
+			acc_s = np.array(parsed_data[1:4])
+			gravity_vec = np.array(parsed_data[4:7])
+
+			acc_z_car = np.dot(acc_s, gravity_vec) * (gravity_vec / np.linalg.norm(gravity_vec))
+			remaining_acc = acc_s - acc_z_car
 
 			data_line = {
 				"timestamp": timestamp,
@@ -753,7 +760,13 @@ class RealRideParser():
 				"filtered_acc_z": acc_s[2],
 				"grav_x": gravity_vec[0],
 				"grav_y": gravity_vec[1],
-				"grav_z": gravity_vec[2]
+				"grav_z": gravity_vec[2],
+				"acc_z_car_x": acc_z_car[0],
+				"acc_z_car_y": acc_z_car[1],
+				"acc_z_car_z": acc_z_car[2],
+				"remaining_acc_x": remaining_acc[0],
+				"remaining_acc_y": remaining_acc[1],
+				"remaining_acc_z": remaining_acc[2]
 			}
 
 			data.append(data_line)
@@ -761,6 +774,7 @@ class RealRideParser():
 		acc_df = pd.DataFrame(data)
 
 		acc_df["acc_resultant"] = np.sqrt(acc_df["acc_x"] ** 2 + acc_df["acc_y"] ** 2 + acc_df["acc_z"] ** 2)
+		acc_df["remaining_acc_resultant"] = np.sqrt(acc_df["remaining_acc_x"] ** 2 + acc_df["remaining_acc_y"] ** 2 + acc_df["remaining_acc_z"] ** 2)
 
 		return acc_df
 
