@@ -34,12 +34,94 @@ new_app_date_format = "%Y-%m-%d %H:%M:%S.%f"
 # 	name = re.sub(r"[^$/\w]", "", name)
 # 	return name.lower()
 
+# def cartesian_product(*arrays):
+#     la = len(arrays)
+#     dtype = np.result_type(*arrays)
+#     arr = np.empty([len(a) for a in arrays] + [la], dtype=dtype)
+#     for i, a in enumerate(np.ix_(*arrays)):
+#         arr[...,i] = a
+#     return arr.reshape(-1, la)
+
+# definir raio de relevancia:
+# https://www.prefeitura.sp.gov.br/cidade/secretarias/subprefeituras/subprefeituras/dados_demograficos/index.php?p=12758
+
+def get_dist_from_coords(coords_1, coords_2):
+	lat_1 = coords_1[0]
+	long_1 = coords_1[1]
+
+	lat_2 = coords_2[0]
+	long_2 = coords_2[1]
+
+	delta_lat = (lat_2 - lat_1) * math.pi / 180
+	delta_long = (long_1 - long_2) * math.pi / 180
+
+	# https://stackoverflow.com/questions/639695/how-to-convert-latitude-or-longitude-to-meters
+	R = 6378.137 # radius of earth in KM
+
+	a_1 = math.sin(delta_lat/2) ** 2
+	a_2 = math.cos(lat_1 * math.pi / 180) * math.cos(lat_2 * math.pi / 180) * math.sin(delta_long/2) ** 2
+	a = a_1 + a_2
+
+	c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
+	delta_distance = (R * c) * 1000 # meters
+
+	return delta_distance
+
+class CrimeAnalyser():
+
+	def __init__(self):
+		
+		# https://www.kaggle.com/datasets/danlessa/geospatial-sao-paulo-crime-database/
+		# https://www.kaggle.com/code/anagagodasilva/s-o-paulo-crime-maps-with-plotly/notebook
+		sp_crimes_path = os.path.join("CrimeData", "crimes_por_bairro_sao_paulo.csv")
+
+		self.north = -23.349816 # mairipora
+		self.south = -24.010330 # itanhaem
+		self.west = -46.821206 # jardim minas
+		self.east = -46.363900 # itaquaquecetuba
+
+		self.segmentation_rate = 20
+
+		self.lat_diff = self.north - self.south
+		self.long_diff = self.east - self.west
+
+		sp_crimes_df = pd.read_csv(sp_crimes_path)
+		car_crimes_df = sp_crimes_df[sp_crimes_df["descricao"].str.contains("carro", na=False)].copy()
+		
+		car_crimes_df["chunk_i"] = car_crimes_df["latitude"].apply(lambda x : self.convert_coord_to_chunk(x, self.south, self.lat_diff))
+		car_crimes_df["chunk_j"] = car_crimes_df["longitude"].apply(lambda x : self.convert_coord_to_chunk(x, self.west, self.long_diff))
+
+		# car_crimes_df[["chunk_i"]].groupby(by="chunk_i").sum()
+
+		self.car_crimes_df = car_crimes_df
+
+	def foo(self, lat, long):
+		chunk_i = self.convert_coord_to_chunk(lat, self.south, self.lat_diff)
+		chunk_j = self.convert_coord_to_chunk(long, self.west, self.long_diff)
+
+		# TODO: check if coord dist of chunks corresponds to needed diameter for analysis
+
+		filter_i = (self.car_crimes_df["chunk_i"] - chunk_i).abs() <= 1
+		filter_j = (self.car_crimes_df["chunk_j"] - chunk_j).abs() <= 1
+
+		return self.car_crimes_df[filter_i & filter_j]
+
+	def convert_coord_to_chunk(self, coord_1, coord_2, max_coord_diff):
+		coord_diff = coord_1 - coord_2
+		chunk = (self.segmentation_rate * coord_diff) // max_coord_diff
+		if chunk < 0 or chunk > self.segmentation_rate:
+			pass
+		return chunk
+
+
 class RealRideParser():
 
 	car_crimes_df = None
 	lambda_url = "https://pntdpvkdsc.execute-api.us-east-1.amazonaws.com/default/app_data"
 
 	def __init__(self, should_get_data_from_database=False, **params):
+
+		RealRideParser.crime_analyser = CrimeAnalyser()
 
 		if should_get_data_from_database:
 			self.user_id = params["user_id"]
@@ -60,51 +142,16 @@ class RealRideParser():
 			self.orientation_df = self.create_orientation_df()
 			self.bearing_df = self.create_bearing_df()
 
-		# https://www.kaggle.com/code/jacekplonowski/sao-paulo-crime-eda/input?select=BO_2016.csv
-		bo_2016_path = os.path.join("CrimeData", "BO_2016.csv")
-		bo_2016_df = pd.read_csv(bo_2016_path)
-
-		# https://www.kaggle.com/datasets/danlessa/geospatial-sao-paulo-crime-database/
-		# https://www.kaggle.com/code/anagagodasilva/s-o-paulo-crime-maps-with-plotly/notebook
-		sp_crimes_path = os.path.join("CrimeData", "crimes_por_bairro_sao_paulo.csv")
-
-		sp_crimes_df = pd.read_csv(sp_crimes_path)
-		RealRideParser.car_crimes_df = sp_crimes_df[sp_crimes_df["descricao"].str.contains("carro", na=False)]
 
 	def calculate_crime_stats(self, map):
-		# definir raio de relevancia:
-		# https://www.prefeitura.sp.gov.br/cidade/secretarias/subprefeituras/subprefeituras/dados_demograficos/index.php?p=12758
-
-		def get_dist_from_coords(coords_1, coords_2):
-			lat_1 = coords_1[0]
-			long_1 = coords_1[1]
-
-			lat_2 = coords_2[0]
-			long_2 = coords_2[1]
-
-			delta_lat = (lat_2 - lat_1) * math.pi / 180
-			delta_long = (long_1 - long_2) * math.pi / 180
-
-			# https://stackoverflow.com/questions/639695/how-to-convert-latitude-or-longitude-to-meters
-			R = 6378.137 # radius of earth in KM
-
-			a_1 = math.sin(delta_lat/2) ** 2
-			a_2 = math.cos(lat_1 * math.pi / 180) * math.cos(lat_2 * math.pi / 180) * math.sin(delta_long/2) ** 2
-			a = a_1 + a_2
-
-			c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
-			delta_distance = (R * c) * 1000 # meters
-
-			return delta_distance
 		
-		# https://www.google.com.br/maps/place/S%C3%A9/@-23.5509876,-46.6345475,18.03z/data=!4m6!3m5!1s0x94ce59aa5b004689:0x37c720ec525c8bd9!8m2!3d-23.5500991!4d-46.633321!16s%2Fm%2F0g5583j?entry=ttu
-		dangerous_place_lat_long = (-23.5509876,-46.6345475)
-
 		dangerous_path_lat_longs = []
 		for path_lat_long in self.gps_df[["lat", "long"]].iterrows():
 			path_lat_long = tuple(path_lat_long[1])
 
-			for _, reported_crime_lat_long in RealRideParser.car_crimes_df[["latitude", "longitude"]].iterrows():
+			crimes_in_chunk_df = RealRideParser.crime_analyser.foo(*path_lat_long)
+
+			for _, reported_crime_lat_long in crimes_in_chunk_df[["latitude", "longitude"]].iterrows():
 				reported_crime_lat_long = tuple(reported_crime_lat_long)
 				dist_from_target = get_dist_from_coords(path_lat_long, reported_crime_lat_long)
 
