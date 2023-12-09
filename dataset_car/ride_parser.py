@@ -74,20 +74,22 @@ class CrimeAnalyser():
 		# https://www.kaggle.com/datasets/danlessa/geospatial-sao-paulo-crime-database/
 		# https://www.kaggle.com/code/anagagodasilva/s-o-paulo-crime-maps-with-plotly/notebook
 		sp_crimes_path = os.path.join("CrimeData", "crimes_por_bairro_sao_paulo.csv")
-		
+
 		sp_crimes_df = pd.read_csv(sp_crimes_path)
 		car_crimes_df = sp_crimes_df[sp_crimes_df["descricao"].str.contains("carro", na=False)].copy()
 
 		# https://brasilemsintese.ibge.gov.br/territorio/dados-geograficos.html
-		self.north = car_crimes_df["latitude"].max() # brasil: 5.27194444444 =	+05o 16'19"
-		self.south = car_crimes_df["latitude"].min() # brasil: -33.7519444444 =	-33o 45'07"
-		self.west = car_crimes_df["longitude"].max() # brasil: -73.9905555556 =	-73o 59'26"
-		self.east = car_crimes_df["longitude"].min() # brasil: -34.7927777778 =	-34o 47'34"
+		# https://www.teleco.com.br/tutoriais/tutorialsmsloc2/pagina_5.asp#:~:text=Cada%20grau%20de%20uma%20latitude,1%C2%B0%20(um%20grau).
+		# give 0.5km margin for furthest chunk boundaries
+		self.north = car_crimes_df["latitude"].max() + (0.5 / 111.11) # brasil: 5.27194444444  =	+05o 16'19"
+		self.south = car_crimes_df["latitude"].min() - (0.5 / 111.11) # brasil: -33.7519444444 =	-33o 45'07"
+		self.west = car_crimes_df["longitude"].max() + (0.5 / 111.11) # brasil: -73.9905555556 = 	-73o 59'26"
+		self.east = car_crimes_df["longitude"].min() - (0.5 / 111.11) # brasil: -34.7927777778 =	-34o 47'34"
 
 		# https://brasilescola.uol.com.br/brasil/pontos-extremos-do-brasil.htm
 		# biggest north-south dist: 4378.4 km
 		# biggest east-west dist: 4326.6 km
-		self.segmentation_rate = 8800
+		self.segmentation_rate = 4400
 
 		self.lat_diff = self.north - self.south
 		self.long_diff = self.east - self.west
@@ -96,11 +98,14 @@ class CrimeAnalyser():
 		car_crimes_df["chunk_i"] = car_crimes_df["latitude"].apply(lambda x : self.convert_coord_to_chunk(x, self.south, self.lat_diff))
 		car_crimes_df["chunk_j"] = car_crimes_df["longitude"].apply(lambda x : self.convert_coord_to_chunk(x, self.west, self.long_diff))
 
-		# car_crimes_df[["chunk_i"]].groupby(by="chunk_i").sum()
+		car_crimes_df["crime_count_in_chunk"] = car_crimes_df[["chunk_i", "chunk_j"]].groupby(by=["chunk_i", "chunk_j"]).transform('size')
 
+		self.min_danger_boundary = 5 # crimes per chunk
+		self.max_danger_boundary = 9 # crimes per chunk
+		
 		self.car_crimes_df = car_crimes_df
 
-	def foo(self, lat, long):
+	def get_chunk_df(self, lat, long):
 		chunk_i = self.convert_coord_to_chunk(lat, self.south, self.lat_diff)
 		chunk_j = self.convert_coord_to_chunk(long, self.west, self.long_diff)
 
@@ -110,6 +115,22 @@ class CrimeAnalyser():
 		filter_j = (self.car_crimes_df["chunk_j"] - chunk_j).abs() <= 1
 
 		return self.car_crimes_df[filter_i & filter_j]
+
+	def get_chunk_danger(self, lat, long):
+		chunk_df = self.get_chunk_df(lat, long)
+		danger_list = []
+		for _, crime_count_series in chunk_df[["crime_count_in_chunk"]].iterrows():
+			crime_count = int(crime_count_series.iloc[0])
+			if crime_count <= self.min_danger_boundary:
+				danger_list.append(1)
+			elif crime_count >= self.max_danger_boundary:
+				danger_list.append(3)
+			else:
+				danger_list.append(2)
+
+		if len(danger_list) == 0:
+			return 1
+		return math.floor(np.average(danger_list))
 
 	def convert_coord_to_chunk(self, coord_1, coord_2, max_coord_diff):
 		coord_diff = coord_1 - coord_2
@@ -150,23 +171,34 @@ class RealRideParser():
 
 	def calculate_crime_stats(self, map):
 		
-		dangerous_path_lat_longs = []
+		path_latlongs = []
 		for path_lat_long in self.gps_df[["lat", "long"]].iterrows():
 			path_lat_long = tuple(path_lat_long[1])
 
-			crimes_in_chunk_df = RealRideParser.crime_analyser.foo(*path_lat_long)
+			danger_level = RealRideParser.crime_analyser.get_chunk_danger(*path_lat_long)
+			path_latlongs.append((path_lat_long, danger_level))
 
-			for _, reported_crime_lat_long in crimes_in_chunk_df[["latitude", "longitude"]].iterrows():
-				reported_crime_lat_long = tuple(reported_crime_lat_long)
-				dist_from_target = get_dist_from_coords(path_lat_long, reported_crime_lat_long)
 
-				# TODO: calcular proporcao de crimes num raio de 100 metros em comparação com um raio de 300m
-				if dist_from_target <= 100:
-					# print(reported_crime_lat_long, dist_from_target)
-					dangerous_path_lat_longs.append(path_lat_long)
+			# crimes_in_chunk_df = RealRideParser.crime_analyser.get_chunk_df(*path_lat_long)
 
-		for dangerous_latlong in dangerous_path_lat_longs:			
-			folium.Marker(dangerous_latlong, icon=folium.Icon(icon="circle-exclamation", prefix="fa", color="red")).add_to(map)
+			# for _, reported_crime_lat_long in crimes_in_chunk_df[["latitude", "longitude"]].iterrows():
+			# 	reported_crime_lat_long = tuple(reported_crime_lat_long)
+			# 	dist_from_target = get_dist_from_coords(path_lat_long, reported_crime_lat_long)
+
+			# 	# TODO: calcular proporcao de crimes num raio de 100 metros em comparação com um raio de 300m
+			# 	if dist_from_target <= 500:
+			# 		# print(reported_crime_lat_long, dist_from_target)
+			# 		path_latlongs.append(path_lat_long)
+
+		for latlong, danger in path_latlongs:
+			danger_to_color = {
+				1: "green",
+				2: "yellow",
+				3: "red",
+			}			
+			color = danger_to_color[danger]
+			
+			folium.Marker(latlong, icon=folium.Icon(icon="circle-exclamation", prefix="fa", color=color)).add_to(map)
 
 		return map
 
