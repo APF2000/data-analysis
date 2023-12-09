@@ -81,10 +81,10 @@ class CrimeAnalyser():
 		# https://brasilemsintese.ibge.gov.br/territorio/dados-geograficos.html
 		# https://www.teleco.com.br/tutoriais/tutorialsmsloc2/pagina_5.asp#:~:text=Cada%20grau%20de%20uma%20latitude,1%C2%B0%20(um%20grau).
 		# give 0.5km margin for furthest chunk boundaries
-		self.north = car_crimes_df["latitude"].max() + (0.5 / 111.11) # brasil: 5.27194444444  =	+05o 16'19"
-		self.south = car_crimes_df["latitude"].min() - (0.5 / 111.11) # brasil: -33.7519444444 =	-33o 45'07"
-		self.west = car_crimes_df["longitude"].max() + (0.5 / 111.11) # brasil: -73.9905555556 = 	-73o 59'26"
-		self.east = car_crimes_df["longitude"].min() - (0.5 / 111.11) # brasil: -34.7927777778 =	-34o 47'34"
+		self.north = car_crimes_df["latitude"].max() + (0.5 / 111.11) # brasil: 5.27194444444  =	+05o 16"19"
+		self.south = car_crimes_df["latitude"].min() - (0.5 / 111.11) # brasil: -33.7519444444 =	-33o 45"07"
+		self.west = car_crimes_df["longitude"].max() + (0.5 / 111.11) # brasil: -73.9905555556 = 	-73o 59"26"
+		self.east = car_crimes_df["longitude"].min() - (0.5 / 111.11) # brasil: -34.7927777778 =	-34o 47"34"
 
 		# https://brasilescola.uol.com.br/brasil/pontos-extremos-do-brasil.htm
 		# biggest north-south dist: 4378.4 km
@@ -98,7 +98,7 @@ class CrimeAnalyser():
 		car_crimes_df["chunk_i"] = car_crimes_df["latitude"].apply(lambda x : self.convert_coord_to_chunk(x, self.south, self.lat_diff))
 		car_crimes_df["chunk_j"] = car_crimes_df["longitude"].apply(lambda x : self.convert_coord_to_chunk(x, self.west, self.long_diff))
 
-		car_crimes_df["crime_count_in_chunk"] = car_crimes_df[["chunk_i", "chunk_j"]].groupby(by=["chunk_i", "chunk_j"]).transform('size')
+		car_crimes_df["crime_count_in_chunk"] = car_crimes_df[["chunk_i", "chunk_j"]].groupby(by=["chunk_i", "chunk_j"]).transform("size")
 
 		self.min_danger_boundary = 5 # crimes per chunk
 		self.max_danger_boundary = 9 # crimes per chunk
@@ -135,8 +135,6 @@ class CrimeAnalyser():
 	def convert_coord_to_chunk(self, coord_1, coord_2, max_coord_diff):
 		coord_diff = coord_1 - coord_2
 		chunk = (self.segmentation_rate * coord_diff) // max_coord_diff
-		if chunk < 0 or chunk > self.segmentation_rate:
-			pass
 		return chunk
 
 
@@ -168,6 +166,53 @@ class RealRideParser():
 			self.orientation_df = self.create_orientation_df()
 			self.bearing_df = self.create_bearing_df()
 
+	def generate_pdf_metrics(self):
+		map = self.create_route_map()
+		map, danger_list = self.calculate_crime_stats(map)
+		risk_table_graph = self.generate_risk_table(danger_list)
+		# risk_table_graph.savefig("bla.png")
+
+
+	def generate_risk_table(self, danger_list):
+		level_to_name = {
+			1: "Baixo Risco",
+			2: "Médio Risco",
+			3: "Alto Risco"
+		}
+		danger_percentage_df = pd.DataFrame({"danger_level": danger_list})
+		danger_percentage_df["danger_name"] = danger_percentage_df["danger_level"].map(level_to_name)
+
+		count_df = danger_percentage_df["danger_name"].value_counts().reset_index()
+		count_df.columns = ["danger_name", "count"]
+
+
+		default_rows = pd.DataFrame({"danger_name": ["Baixo Risco", "Médio Risco", "Alto Risco"],
+									"count": [0, 0, 0]})
+
+		merged_df = pd.merge(default_rows, count_df, on="danger_name", how="left").fillna(0)
+		merged_df["count"] = merged_df[["count_x", "count_y"]].max(axis=1)
+
+		percentage_series = 100 * merged_df['count'] / merged_df["count"].sum()
+		merged_df["percentage"] = percentage_series.apply(lambda x : "%.2f%%" % x)
+
+		fig, ax = plt.subplots(figsize=(5, 1))
+
+		ax.xaxis.set_visible(False)
+		ax.yaxis.set_visible(False)
+		ax.set_frame_on(False)
+
+		cell_text = []
+		for i in range(3):
+			cell_text.append([merged_df.iloc[i]["percentage"]])
+
+		tab = plt.table(cellText=cell_text, rowLabels=merged_df["danger_name"], colLabels=["Fração do tempo passada lá"], loc="center", colWidths=[1, 1.1], cellLoc="center")
+		tab.auto_set_font_size(False)
+		tab.set_fontsize(10)
+		tab.scale(1, 2)
+		# ax.set_title("Contagem de Níveis de Perigo")
+
+		return plt.gcf()
+
 
 	def calculate_crime_stats(self, map):
 		
@@ -190,17 +235,23 @@ class RealRideParser():
 			# 		# print(reported_crime_lat_long, dist_from_target)
 			# 		path_latlongs.append(path_lat_long)
 
+		danger_list = []
 		for latlong, danger in path_latlongs:
+			danger_list.append(danger)
+
+			if danger <= 1:
+				continue
+
 			danger_to_color = {
 				1: "green",
-				2: "yellow",
+				2: "orange",
 				3: "red",
 			}			
 			color = danger_to_color[danger]
 			
 			folium.Marker(latlong, icon=folium.Icon(icon="circle-exclamation", prefix="fa", color=color)).add_to(map)
 
-		return map
+		return map, danger_list
 
 
 	def create_route_map(self):
