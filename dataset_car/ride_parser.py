@@ -74,19 +74,24 @@ class CrimeAnalyser():
 		# https://www.kaggle.com/datasets/danlessa/geospatial-sao-paulo-crime-database/
 		# https://www.kaggle.com/code/anagagodasilva/s-o-paulo-crime-maps-with-plotly/notebook
 		sp_crimes_path = os.path.join("CrimeData", "crimes_por_bairro_sao_paulo.csv")
+		
+		sp_crimes_df = pd.read_csv(sp_crimes_path)
+		car_crimes_df = sp_crimes_df[sp_crimes_df["descricao"].str.contains("carro", na=False)].copy()
 
-		self.north = -23.349816 # mairipora
-		self.south = -24.010330 # itanhaem
-		self.west = -46.821206 # jardim minas
-		self.east = -46.363900 # itaquaquecetuba
+		# https://brasilemsintese.ibge.gov.br/territorio/dados-geograficos.html
+		self.north = car_crimes_df["latitude"].max() # brasil: 5.27194444444 =	+05o 16'19"
+		self.south = car_crimes_df["latitude"].min() # brasil: -33.7519444444 =	-33o 45'07"
+		self.west = car_crimes_df["longitude"].max() # brasil: -73.9905555556 =	-73o 59'26"
+		self.east = car_crimes_df["longitude"].min() # brasil: -34.7927777778 =	-34o 47'34"
 
-		self.segmentation_rate = 20
+		# https://brasilescola.uol.com.br/brasil/pontos-extremos-do-brasil.htm
+		# biggest north-south dist: 4378.4 km
+		# biggest east-west dist: 4326.6 km
+		self.segmentation_rate = 8800
 
 		self.lat_diff = self.north - self.south
 		self.long_diff = self.east - self.west
 
-		sp_crimes_df = pd.read_csv(sp_crimes_path)
-		car_crimes_df = sp_crimes_df[sp_crimes_df["descricao"].str.contains("carro", na=False)].copy()
 		
 		car_crimes_df["chunk_i"] = car_crimes_df["latitude"].apply(lambda x : self.convert_coord_to_chunk(x, self.south, self.lat_diff))
 		car_crimes_df["chunk_j"] = car_crimes_df["longitude"].apply(lambda x : self.convert_coord_to_chunk(x, self.west, self.long_diff))
