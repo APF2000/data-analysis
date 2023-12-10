@@ -615,11 +615,9 @@ class RealRideParser():
 		if self.should_get_data_from_database:
 			request_body = {
 				"method": "get_obd_info",
-				"data": {
-					"user_id": self.user_id,
-					"date_beg": self.date_beg,
-					"date_end": self.date_end
-				}
+				"user_token": self.user_id,
+				"time_min": self.date_beg,
+				"time_max": self.date_end
 			}
 			
 			response = requests.post(RealRideParser.lambda_url, json=request_body)
@@ -631,6 +629,10 @@ class RealRideParser():
 				corrected_list = ["" if x is None else x for x in response_list]
 				engine_data = corrected_list[0] + " " + json.dumps([corrected_list[2], corrected_list[2], corrected_list[3]])
 				engine_data_list.append(engine_data)
+
+			if len(engine_data_list) == 0:
+				return pd.DataFrame()
+			
 			engine_data = "\n".join(engine_data_list)
 		else:
 			engine_data_path = os.path.join(self.root_dir, "DELETEME.txt")
@@ -638,6 +640,9 @@ class RealRideParser():
 
 		param_name_to_df = {}
 		for data_entry in engine_data.split("\n"):
+			if data_entry == "":
+				continue
+
 			data_entry = data_entry.replace("NODATA", "0")
 
 			try:
@@ -860,11 +865,9 @@ class RealRideParser():
 		if self.should_get_data_from_database:
 			request_body = {
 				"method": "get_location",
-				"data": {
-					"user_id": self.user_id,
-					"date_beg": self.date_beg,
-					"date_end": self.date_end
-				}
+				"user_token": self.user_id,
+				"time_min": self.date_beg,
+				"time_max": self.date_end
 			}
 			
 			response = requests.post(RealRideParser.lambda_url, json=request_body)
@@ -876,6 +879,10 @@ class RealRideParser():
 				corrected_list = ["" if x is None else x for x in response_list]
 				gps_data = corrected_list[0] + " " + json.dumps(corrected_list[2:])
 				gps_data_list.append(gps_data)
+
+			if len(gps_data_list) == 0:
+				return pd.DataFrame()
+			
 			gps_data = "\n".join(gps_data_list)
 		else:
 			gps_file_path = os.path.join(self.root_dir, "DELETEME_GPS.txt")
@@ -884,6 +891,8 @@ class RealRideParser():
 		data = []
 
 		for line in gps_data.split("\n"):
+			if line == "":
+				continue
 
 			timestamp, lat, long = self.parse_data_line(line)
 
@@ -901,11 +910,9 @@ class RealRideParser():
 		if self.should_get_data_from_database:
 			request_body = {
 				"method": "get_acceleration",
-				"data": {
-					"user_id": self.user_id,
-					"date_beg": self.date_beg,
-					"date_end": self.date_end
-				}
+				"user_token": self.user_id,
+				"time_min": self.date_beg,
+				"time_max": self.date_end
 			}
 			
 			response = requests.post(RealRideParser.lambda_url, json=request_body)
@@ -917,6 +924,10 @@ class RealRideParser():
 				corrected_list = ["" if x is None else x for x in response_list]
 				acc_data = corrected_list[0] + " " + json.dumps(corrected_list[2:])
 				acc_data_list.append(acc_data)
+
+			if len(acc_data_list) == 0:
+				return pd.DataFrame()
+			
 			acc_data = "\n".join(acc_data_list)
 		else:
 			accelerometer_file_path = os.path.join(self.root_dir, "DELETEME_ACCELERATION.txt")
@@ -925,6 +936,8 @@ class RealRideParser():
 		data = []
 
 		for line in acc_data.split("\n"):
+			if line == "":
+				continue
 
 			parsed_data = self.parse_data_line(line)
 
