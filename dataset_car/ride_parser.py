@@ -172,15 +172,106 @@ class RealRideParser():
 		risk_table_graph = self.generate_risk_table(danger_list)
 		# risk_table_graph.savefig("bla.png")
 		# self.calculate_acc_stats_near_stop()
-		map, sudden_acc_percentage, sudden_acc_table = self.generate_sudden_acc(map)
+		map, sudden_acc_table = self.generate_sudden_acc(map)
 		sudden_acc_table.show()
-		print("Porcentagem de acelerações acima do normal: ", sudden_acc_percentage)
+		# print("Porcentagem de acelerações acima do normal: ", sudden_acc_percentage)
+		map, excess_rpm_table = self.generate_rpm_graph(map)
+		excess_rpm_table.show()
 
 		return map
 
+	def generate_rpm_graph(self, map):
+		gps_df = self.gps_df
+		rpm_df = self.obd_data["ENGINE_RPM"]
+
+		data = []
+		for _, rpm in rpm_df.iterrows():
+			timestamp = rpm["timestamp"]
+			rpm_val = rpm["ENGINE_RPM"]
+			gps_id = min(len(gps_df) - 1, gps_df["timestamp"].searchsorted(timestamp))
+
+			lat = gps_df.iloc[gps_id]["lat"]
+			long = gps_df.iloc[gps_id]["long"]
+
+			data.append({
+				"timestamp": timestamp,
+				"lat": lat,
+				"long": long,
+				"rpm": rpm_val
+			})
+
+		all_rpm_df = pd.DataFrame(data)
+
+		dangerous_rpm_list = []
+
+		# excess_rpm_df = all_rpm_df[all_rpm_df["resultant"] >= 5]
+		for _, rpm in all_rpm_df.iterrows():
+
+			lat = rpm["lat"]
+			long = rpm["long"]
+			
+			rpm_resultant = float(rpm["rpm"])
+			if rpm_resultant <= 2000:
+				dangerous_rpm_list.append(1)
+			elif rpm_resultant >= 4000:
+				dangerous_rpm_list.append(3)
+			else:
+				dangerous_rpm_list.append(2)
+
+			danger_to_color = {
+				1: "green",
+				2: "orange",
+				3: "red",
+			}			
+			color = danger_to_color[dangerous_rpm_list[-1]]
+
+			folium.Marker([lat, long], icon=folium.Icon(icon="gear", prefix="fa", color=color)).add_to(map)
+
+		# excess_rpm_percentage = len(excess_rpm_df) / len(all_rpm_df)
+		# excess_rpm_percentage = "%.2f" % (excess_rpm_percentage * 100)
+
+		level_to_name = {
+			1: "RPM normal",
+			2: "RPM médio",
+			3: "RPM muito alto"
+		}
+		danger_percentage_df = pd.DataFrame({"danger_level": dangerous_rpm_list})
+		danger_percentage_df["danger_name"] = danger_percentage_df["danger_level"].map(level_to_name)
+
+		count_df = danger_percentage_df["danger_name"].value_counts().reset_index()
+		count_df.columns = ["danger_name", "count"]
+
+
+		default_rows = pd.DataFrame({"danger_name": ["RPM normal", "RPM médio", "RPM muito alto"],
+									"count": [0, 0, 0]})
+
+		merged_df = pd.merge(default_rows, count_df, on="danger_name", how="left").fillna(0)
+		merged_df["count"] = merged_df[["count_x", "count_y"]].max(axis=1)
+
+		percentage_series = merged_df['count'] / merged_df["count"].sum()
+		merged_df["percentage"] = percentage_series.apply(lambda x : "%.2f%%" % (x * 100))
+
+		fig, ax = plt.subplots(figsize=(5, 1))
+
+		ax.xaxis.set_visible(False)
+		ax.yaxis.set_visible(False)
+		ax.set_frame_on(False)
+
+		cell_text = []
+		for i in range(3):
+			cell_text.append([merged_df.iloc[i]["percentage"]])
+
+		tab = plt.table(cellText=cell_text, rowLabels=merged_df["danger_name"], colLabels=["Fração do tempo com cada tipo de RPM"], loc="center", colWidths=[1, 1.1], cellLoc="center")
+		tab.auto_set_font_size(False)
+		tab.set_fontsize(10)
+		tab.scale(1, 2)
+		# ax.set_title("Contagem de Níveis de Perigo")
+
+		return map, plt.gcf()
+
 	def generate_sudden_acc(self, map):
 		gps_df = self.gps_df
-		resultant_acc_df = self.accelerometer_df[["timestamp", "remaining_acc_resultant"]].copy()
+		resultant_acc_df = self.accelerometer_df[["timestamp", "remaining_acc_resultant"]]
 
 		data = []
 		for _, acc in resultant_acc_df.iterrows():
@@ -202,8 +293,7 @@ class RealRideParser():
 
 		dangerous_acc_list = []
 
-		sudden_acc_df = all_acc_df[all_acc_df["resultant"] >= 5]
-		for _, acc in sudden_acc_df.iterrows():
+		for _, acc in all_acc_df.iterrows():
 
 			lat = acc["lat"]
 			long = acc["long"]
@@ -225,8 +315,9 @@ class RealRideParser():
 
 			folium.Marker([lat, long], icon=folium.Icon(icon="car", prefix="fa", color=color)).add_to(map)
 
-		sudden_acc_percentage = len(sudden_acc_df) / len(all_acc_df)
-		sudden_acc_percentage = "%.2f" % (sudden_acc_percentage * 100)
+		# sudden_acc_df = all_acc_df[all_acc_df["resultant"] >= 5]
+		# sudden_acc_percentage = len(sudden_acc_df) / len(all_acc_df)
+		# sudden_acc_percentage = "%.2f" % (sudden_acc_percentage * 100)
 
 		level_to_name = {
 			1: "Aceleração normal",
@@ -265,7 +356,7 @@ class RealRideParser():
 		tab.scale(1, 2)
 		# ax.set_title("Contagem de Níveis de Perigo")
 
-		return map, sudden_acc_percentage, plt.gcf()
+		return map, plt.gcf()
 
 
 	def generate_risk_table(self, danger_list):
