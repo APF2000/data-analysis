@@ -678,7 +678,11 @@ class RealRideParser():
 			rpm = x.replace("RPM", "")
 			if rpm == "":
 				return 0
-			return float(rpm)
+			try:
+				return float(rpm)
+			except:
+				print("invalid rpm: %s" % rpm)
+				return 0
 		
 		param_name_to_df["SPEED"]["SPEED"] = speed_series.apply(convert_vel_to_float)
 		param_name_to_df["ENGINE_RPM"]["ENGINE_RPM"] = param_name_to_df["ENGINE_RPM"]["ENGINE_RPM"].apply(convert_rpm_to_float)
@@ -690,15 +694,18 @@ class RealRideParser():
 			try:
 				return float(temp)
 			except:
-				print("cannot convert %s to float" % temp)
+				print("cannot convert temp %s to float" % temp)
 				return 0
 
 		def convert_pressure_to_float(x):
 			pressure = x.replace("kPa", "")
 			if pressure == "":
 				return 0
-			return float(pressure)
-
+			try:
+				return float(pressure)
+			except:
+				print("cannot convert pressure %s to float" % pressure)
+				return 0
 		temp_params = []
 		pressure_params = []
 		other_params = []
