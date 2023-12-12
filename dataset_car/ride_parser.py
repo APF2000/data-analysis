@@ -183,11 +183,11 @@ class RealRideParser():
 		map = self.create_route_map()
 		map, danger_list = self.calculate_crime_stats(map)
 
-		risk_table_fig = self.generate_risk_table(danger_list)
-		# risk_table_graph.savefig("bla.png")
-		# self.calculate_acc_stats_near_stop()
+		# risk_table_fig = self.generate_risk_table(danger_list)
+		# # risk_table_graph.savefig("bla.png")
+		# # self.calculate_acc_stats_near_stop()
 
-		map = self.generate_sudden_acc(map)
+		# map = self.generate_sudden_acc(map)
 		# sudden_acc_table.show()
 		# print("Porcentagem de acelerações acima do normal: ", sudden_acc_percentage)
 		map = self.generate_rpm_graph(map)
@@ -210,6 +210,8 @@ class RealRideParser():
 		# pdf_file.savefig(risk_table_fig)
 		# pdf_file.savefig(sudden_acc_table)
 		# pdf_file.savefig(excess_rpm_table)
+		# pdf_file.savefig(map.get_root()) #.save("map.html"))
+
 
 		pdf_file.close()
 		self.pdf_fig.show()
@@ -306,6 +308,22 @@ class RealRideParser():
 		tab.set_fontsize(10)
 		tab.scale(1, 2)
 		# ax.set_title("Contagem de Níveis de Perigo")
+
+		 # Save the RPM graph as a PNG file
+		rpm_graph_filename = "rpm_graph.png"
+		plt.savefig(rpm_graph_filename, bbox_inches='tight')
+		plt.close()
+
+		# Create a new figure for the saved RPM graph
+		rpm_fig = plt.figure()
+		rpm_ax = rpm_fig.add_subplot(111)
+
+		# Add the saved RPM graph to the new figure
+		rpm_ax.imshow(plt.imread(rpm_graph_filename))
+		rpm_ax.axis('off')
+
+		# Save the new figure to the PDF
+		# rpm_fig.savefig(map.get_root()) #.save("rpm_graph.html"))
 
 		return map #, fig # plt.gcf()
 
