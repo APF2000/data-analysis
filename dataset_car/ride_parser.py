@@ -8,6 +8,10 @@ from datetime import datetime, timezone
 
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
+from matplotlib.gridspec import GridSpec
+import matplotlib as mpl
+
+mpl.rcParams.update(mpl.rcParamsDefault)
 
 import os
 
@@ -168,6 +172,9 @@ class RealRideParser():
 			self.orientation_df = self.create_orientation_df()
 			self.bearing_df = self.create_bearing_df()
 
+		self.pdf_grid_spec = GridSpec(2,2)  
+		self.pdf_fig = plt.figure(figsize=(12, 16))
+
 	def generate_pdf_metrics(self):
 		# fig, axs = plt.subplots(nrows=3, ncols=2)
 
@@ -180,19 +187,15 @@ class RealRideParser():
 		# risk_table_graph.savefig("bla.png")
 		# self.calculate_acc_stats_near_stop()
 
-		map, sudden_acc_table = self.generate_sudden_acc(map)
+		map = self.generate_sudden_acc(map)
 		# sudden_acc_table.show()
 		# print("Porcentagem de acelerações acima do normal: ", sudden_acc_percentage)
-		map, excess_rpm_table = self.generate_rpm_graph(map)
+		map = self.generate_rpm_graph(map)
 		# excess_rpm_table.show()
 
-		risk_table_fig.tight_layout(pad=4)
-		sudden_acc_table.tight_layout(pad=4)
-		excess_rpm_table.tight_layout(pad=4)
-
-		pdf_file.savefig(risk_table_fig)
-		pdf_file.savefig(sudden_acc_table)
-		pdf_file.savefig(excess_rpm_table)
+		# risk_table_fig.tight_layout(pad=4)
+		# sudden_acc_table.tight_layout(pad=4)
+		# excess_rpm_table.tight_layout(pad=4)
 
 		d = pdf_file.infodict()
 		d['Title'] = 'Relatório da sua direção'
@@ -203,7 +206,13 @@ class RealRideParser():
 		d['ModDate'] = datetime.today()
 
 
+		pdf_file.savefig(self.pdf_fig)
+		# pdf_file.savefig(risk_table_fig)
+		# pdf_file.savefig(sudden_acc_table)
+		# pdf_file.savefig(excess_rpm_table)
+
 		pdf_file.close()
+		self.pdf_fig.show()
 
 		# return map
 
@@ -281,7 +290,8 @@ class RealRideParser():
 		percentage_series = merged_df['count'] / merged_df["count"].sum()
 		merged_df["percentage"] = percentage_series.apply(lambda x : "%.2f%%" % (x * 100))
 
-		fig, ax = plt.subplots(figsize=(10, 10))
+		# fig, ax = plt.subplots(figsize=(10, 10))
+		ax = plt.subplot(self.pdf_grid_spec[0, 1])
 
 		ax.xaxis.set_visible(False)
 		ax.yaxis.set_visible(False)
@@ -297,7 +307,7 @@ class RealRideParser():
 		tab.scale(1, 2)
 		# ax.set_title("Contagem de Níveis de Perigo")
 
-		return map, fig # plt.gcf()
+		return map #, fig # plt.gcf()
 
 	def generate_sudden_acc(self, map):
 		gps_df = self.gps_df
@@ -372,7 +382,8 @@ class RealRideParser():
 		percentage_series = merged_df['count'] / merged_df["count"].sum()
 		merged_df["percentage"] = percentage_series.apply(lambda x : "%.2f%%" % (x * 100))
 
-		fig, ax = plt.subplots(figsize=(10, 10))
+		# fig, ax = plt.subplots(figsize=(10, 10))
+		ax = plt.subplot(self.pdf_grid_spec[1, 0])
 
 		ax.xaxis.set_visible(False)
 		ax.yaxis.set_visible(False)
@@ -388,7 +399,7 @@ class RealRideParser():
 		tab.scale(1, 2)
 		# ax.set_title("Contagem de Níveis de Perigo")
 
-		return map, fig # plt.gcf()
+		return map #, fig # plt.gcf()
 
 
 	def generate_risk_table(self, danger_list):
@@ -413,7 +424,9 @@ class RealRideParser():
 		percentage_series = merged_df['count'] / merged_df["count"].sum()
 		merged_df["percentage"] = percentage_series.apply(lambda x : "%.2f%%" % (x * 100))
 
-		fig, ax = plt.subplots(figsize=(10, 10))
+		ax = plt.subplot(self.pdf_grid_spec[0, :])
+
+		# fig, ax = plt.subplots(figsize=(10, 10))
 
 		ax.xaxis.set_visible(False)
 		ax.yaxis.set_visible(False)
@@ -429,7 +442,7 @@ class RealRideParser():
 		tab.scale(1, 2)
 		# ax.set_title("Contagem de Níveis de Perigo")
 
-		return fig # plt.gcf()
+		return # fig # plt.gcf()
 
 
 	def calculate_crime_stats(self, map):
