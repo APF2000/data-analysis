@@ -11,9 +11,9 @@ from matplotlib.backends.backend_pdf import PdfPages
 from matplotlib.gridspec import GridSpec
 import matplotlib as mpl
 
-from selenium import webdriver
-import selenium
-from selenium.webdriver.chrome.service import Service
+# from selenium import webdriver
+# import selenium
+# from selenium.webdriver.chrome.service import Service
 
 mpl.rcParams.update(mpl.rcParamsDefault)
 
@@ -190,6 +190,7 @@ class RealRideParser():
 
 		pdf_bytes_io = BytesIO()
 		pdf_file = PdfPages(pdf_bytes_io)
+		pdf_bytes_io.seek(0)
 		# pdf_file = PdfPages("teste.pdf")
 
 		map = self.create_route_map()
@@ -207,54 +208,6 @@ class RealRideParser():
 
 		html_bytes_io = BytesIO()
 		map.save(html_bytes_io)
-
-		chrome_path = "~/Downloads/chromedriver_linux64"
-
-		service = Service(executable_path=chrome_path)
-		options = webdriver.ChromeOptions()
-		# options.add_argument("--headless=new")
-		driver = webdriver.Chrome(options=options)
-
-		# Abrir o HTML do mapa no navegador controlado pelo Selenium
-		driver.get(html_bytes_io)
-		driver.get("data:text/html;charset=utf-8," + map.get_root().render())
-		open("bla.txt", "w").write("data:text/html;charset=utf-8," + map.get_root().render())
-		# while True:
-		# 	pass
-
-		# Esperar um pouco para o mapa carregar completamente (ajuste conforme necessário)
-		# import time
-		# time.sleep(5)
-
-		# Salvar uma captura de tela do navegador
-		screenshot = driver.get_screenshot_as_png()
-
-		# Fechar o navegador controlado pelo Selenium
-		driver.quit()
-
-		# Abrir a captura de tela usando o PIL
-		img = Image.open(BytesIO(screenshot))
-
-		# Salvar a imagem localmente (opcional)
-		img.save('image.png')
-
-		# Adicionar a imagem do mapa ao arquivo PDF
-		plt.figure()
-		plt.imshow(img)
-		plt.axis('off')  # Desativar os eixos
-		pdf_file.savefig()
-
-		# img_data = map._to_png(5)
-		# img = Image.open(io.BytesIO(img_data))
-		# img.save('image.png')
-
-		# driver = webdriver.Firefox() # firefox_binary = "path/to/waterfox")
-		# driver.get(mapUrl)
-
-		# # wait for 5 seconds for the maps and other assets to be loaded in the browser
-		# time.sleep(5)
-		# driver.save_screenshot('output.png')
-		# driver.quit()
 
 		self.generate_velocity_graph()
 
@@ -274,7 +227,15 @@ class RealRideParser():
 		# self.fig.savefig(fig_bytes_io, format='png')
 
 		# pdf_file.savefig(fig_bytes_io) #fig_bytes_io)
+
+		fig_bytes_io = BytesIO()
+		self.fig.savefig(fig_bytes_io, format='png')
+
+		# Reposiciona o cursor no início do buffer
+		fig_bytes_io.seek(0)
+
 		pdf_file.savefig(self.fig)
+		pdf_bytes_io.seek(0)
 		# fig_bytes_io.seek(0)
 
 		# pdf_file.savefig(self.fig) # self.pdf_fig)
@@ -284,7 +245,9 @@ class RealRideParser():
 		# pdf_file.savefig(map.get_root()) #.save("map.html"))
 
 
-		pdf_file.close()
+		# pdf_file.save()
+
+		# pdf_file.close()
 		# self.pdf_fig.show()
 
 		# return map
