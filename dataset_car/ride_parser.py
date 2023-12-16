@@ -247,7 +247,7 @@ class RealRideParser():
 
 		# pdf_file.save()
 
-		pdf_file.close()
+		# pdf_file.close()
 		# self.pdf_fig.show()
 
 		# return map
