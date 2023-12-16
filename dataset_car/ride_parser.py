@@ -190,7 +190,7 @@ class RealRideParser():
 
 		pdf_bytes_io = BytesIO()
 		pdf_file = PdfPages(pdf_bytes_io)
-		pdf_bytes_io.seek(0)
+		# pdf_bytes_io.seek(0)
 		# pdf_file = PdfPages("teste.pdf")
 
 		map = self.create_route_map()
@@ -215,13 +215,13 @@ class RealRideParser():
 		# sudden_acc_table.tight_layout(pad=4)
 		# excess_rpm_table.tight_layout(pad=4)
 
-		# d = pdf_file.infodict()
-		# d['Title'] = 'Relatório da sua direção'
-		# d['Author'] = 'OBD Reader App'
-		# d['Subject'] = 'Resultados'
-		# d['Keywords'] = 'obd data-analysis'
-		# d['CreationDate'] = datetime.today()
-		# d['ModDate'] = datetime.today()
+		d = pdf_file.infodict()
+		d['Title'] = 'Relatório da sua direção'
+		d['Author'] = 'OBD Reader App'
+		d['Subject'] = 'Resultados'
+		d['Keywords'] = 'obd data-analysis'
+		d['CreationDate'] = datetime.today()
+		d['ModDate'] = datetime.today()
 
 		fig_bytes_io = BytesIO()
 		# self.fig.savefig(fig_bytes_io, format='png')
@@ -235,7 +235,7 @@ class RealRideParser():
 		fig_bytes_io.seek(0)
 
 		pdf_file.savefig(self.fig)
-		pdf_bytes_io.seek(0)
+		# pdf_bytes_io.seek(0)
 		# fig_bytes_io.seek(0)
 
 		# pdf_file.savefig(self.fig) # self.pdf_fig)
@@ -247,7 +247,7 @@ class RealRideParser():
 
 		# pdf_file.save()
 
-		# pdf_file.close()
+		pdf_file.close()
 		# self.pdf_fig.show()
 
 		# return map
