@@ -3,6 +3,8 @@ numpy
 pandas
 matplotlib
 folium
+selenium
+Pillow
 geopy
 pyproj
 scipy
