@@ -2,6 +2,8 @@ ipykernel
 numpy
 pandas
 matplotlib
+geopandas
+contextily
 folium
 selenium
 Pillow
