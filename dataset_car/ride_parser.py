@@ -205,6 +205,9 @@ class RealRideParser():
 		map = self.generate_rpm_graph(map)
 		# excess_rpm_table.show()
 
+		html_bytes_io = BytesIO()
+		map.save(html_bytes_io)
+
 		chrome_path = "~/Downloads/chromedriver_linux64"
 
 		service = Service(executable_path=chrome_path)
@@ -213,7 +216,11 @@ class RealRideParser():
 		driver = webdriver.Chrome(options=options)
 
 		# Abrir o HTML do mapa no navegador controlado pelo Selenium
+		driver.get(html_bytes_io)
 		driver.get("data:text/html;charset=utf-8," + map.get_root().render())
+		open("bla.txt", "w").write("data:text/html;charset=utf-8," + map.get_root().render())
+		# while True:
+		# 	pass
 
 		# Esperar um pouco para o mapa carregar completamente (ajuste conforme necessário)
 		# import time
