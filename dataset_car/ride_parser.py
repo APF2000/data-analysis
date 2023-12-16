@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 
 import io
 import json
-from datetime import datetime, timezone
+from datetime import datetime, timezone, UTC
 
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
@@ -172,7 +172,7 @@ class RealRideParser():
 			self.orientation_df = self.create_orientation_df()
 			self.bearing_df = self.create_bearing_df()
 
-		self.fig, self.axs = plt.subplots(nrows=2, ncols=2, figsize=(10, 10), layout="constrained")
+		self.fig, self.axs = plt.subplots(nrows=2, ncols=2, figsize=(20, 10), layout="constrained")
 
 		# self.pdf_grid_spec = GridSpec(2,2)  
 		# self.pdf_fig = plt.figure(figsize=(12, 16))
@@ -194,6 +194,8 @@ class RealRideParser():
 		# print("Porcentagem de acelerações acima do normal: ", sudden_acc_percentage)
 		map = self.generate_rpm_graph(map)
 		# excess_rpm_table.show()
+
+		self.generate_velocity_graph()
 
 		# risk_table_fig.tight_layout(pad=4)
 		# sudden_acc_table.tight_layout(pad=4)
@@ -219,6 +221,62 @@ class RealRideParser():
 		# self.pdf_fig.show()
 
 		# return map
+
+	def generate_velocity_graph(self):
+		vels_from_gps_df = self.obd_data["SPEED"]
+
+		# gps_timestamps = vels_from_gps_df["timestamp"]
+		# obd_timestamps = vels_from_obd_df["timestamp"]
+
+		# min_gps_time = gps_timestamps.min()
+		# max_gps_time = gps_timestamps.max()
+
+		# min_obd_time = obd_timestamps.min()
+		# max_obd_time = obd_timestamps.max()
+
+		# min_time_filter = max(min_gps_time, min_obd_time)
+		# max_time_filter = min(max_gps_time, max_obd_time)
+
+		# min_time_filter, max_time_filter
+
+		# filter_gps = (vels_from_gps_df["timestamp"] >= min_time_filter) & (vels_from_gps_df["timestamp"] <= max_time_filter)
+		# filtered_vels_from_gps_df = vels_from_gps_df[filter_gps]
+
+		# fig, axs = plt.subplots(1, 1, figsize=(6.4, 3), layout='constrained')
+
+		display_col_name = "SPEED"
+		physical_qtty_name = "Velocidade"
+		unit = "m/s"
+		df_to_display = vels_from_gps_df
+
+		df_to_display = df_to_display.rename(columns={display_col_name : physical_qtty_name})
+
+		series_to_display = df_to_display[physical_qtty_name]
+
+		ax = self.axs[1][1]
+
+		ax.plot("timestamp", physical_qtty_name, data=df_to_display)
+
+		ax.grid(True)
+		ax.set_ylabel("%s (%s)" % (physical_qtty_name, unit))
+		ax.set_xlabel("Horário UTC")
+
+		first_timestamp = df_to_display.iloc[0]["timestamp"]
+		record_day_month_year_string = datetime.fromtimestamp(first_timestamp, UTC).strftime("%d/%m/%Y %H:%M")
+		ax.set_title("Captura de %s em " % physical_qtty_name + record_day_month_year_string)
+
+		min_val = series_to_display.min()
+		max_val = series_to_display.max()
+		median_val = series_to_display.median()
+
+		ax.axhline(y=median_val, color="orange", linestyle="dashed", label="Mediana (%.2f)" % median_val) 
+		ax.axhline(y=min_val, color="yellow", linestyle="dashed", label="Valor mínimo (%.2f)" % min_val) 
+		ax.axhline(y=max_val, color="red", linestyle="dashed", label="Valor máximo (%.2f)" % max_val) 
+
+		ax.legend(loc='center right', bbox_to_anchor=(1.6, 0.5),
+				ncol=1, fancybox=True, shadow=True)
+
+		# ax.show()
 
 	def generate_rpm_graph(self, map):
 		gps_df = self.gps_df
