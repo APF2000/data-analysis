@@ -172,8 +172,10 @@ class RealRideParser():
 			self.orientation_df = self.create_orientation_df()
 			self.bearing_df = self.create_bearing_df()
 
-		self.pdf_grid_spec = GridSpec(2,2)  
-		self.pdf_fig = plt.figure(figsize=(12, 16))
+		self.fig, self.axs = plt.subplots(nrows=2, ncols=2, figsize=(10, 10), layout="constrained")
+
+		# self.pdf_grid_spec = GridSpec(2,2)  
+		# self.pdf_fig = plt.figure(figsize=(12, 16))
 
 	def generate_pdf_metrics(self):
 		# fig, axs = plt.subplots(nrows=3, ncols=2)
@@ -183,11 +185,11 @@ class RealRideParser():
 		map = self.create_route_map()
 		map, danger_list = self.calculate_crime_stats(map)
 
-		# risk_table_fig = self.generate_risk_table(danger_list)
+		risk_table_fig = self.generate_risk_table(danger_list)
 		# # risk_table_graph.savefig("bla.png")
 		# # self.calculate_acc_stats_near_stop()
 
-		# map = self.generate_sudden_acc(map)
+		map = self.generate_sudden_acc(map)
 		# sudden_acc_table.show()
 		# print("Porcentagem de acelerações acima do normal: ", sudden_acc_percentage)
 		map = self.generate_rpm_graph(map)
@@ -206,7 +208,7 @@ class RealRideParser():
 		d['ModDate'] = datetime.today()
 
 
-		pdf_file.savefig(self.pdf_fig)
+		pdf_file.savefig(self.fig) # self.pdf_fig)
 		# pdf_file.savefig(risk_table_fig)
 		# pdf_file.savefig(sudden_acc_table)
 		# pdf_file.savefig(excess_rpm_table)
@@ -214,7 +216,7 @@ class RealRideParser():
 
 
 		pdf_file.close()
-		self.pdf_fig.show()
+		# self.pdf_fig.show()
 
 		# return map
 
@@ -293,7 +295,10 @@ class RealRideParser():
 		merged_df["percentage"] = percentage_series.apply(lambda x : "%.2f%%" % (x * 100))
 
 		# fig, ax = plt.subplots(figsize=(10, 10))
-		ax = plt.subplot(self.pdf_grid_spec[0, 1])
+
+		# ax = plt.subplot(self.pdf_grid_spec[0, 1])
+		ax = self.axs[0][1]
+
 
 		ax.xaxis.set_visible(False)
 		ax.yaxis.set_visible(False)
@@ -303,24 +308,24 @@ class RealRideParser():
 		for i in range(3):
 			cell_text.append([merged_df.iloc[i]["percentage"]])
 
-		tab = plt.table(cellText=cell_text, rowLabels=merged_df["danger_name"], colLabels=["Fração do tempo com cada tipo de RPM"], loc="center", colWidths=[1, 1.1], cellLoc="center")
+		tab = ax.table(cellText=cell_text, rowLabels=merged_df["danger_name"], colLabels=["Fração do tempo com cada tipo de RPM"], loc="center", colWidths=[1, 1.1], cellLoc="center")
 		tab.auto_set_font_size(False)
 		tab.set_fontsize(10)
 		tab.scale(1, 2)
 		# ax.set_title("Contagem de Níveis de Perigo")
 
 		 # Save the RPM graph as a PNG file
-		rpm_graph_filename = "rpm_graph.png"
-		plt.savefig(rpm_graph_filename, bbox_inches='tight')
-		plt.close()
+		# rpm_graph_filename = "rpm_graph.png"
+		# ax.savefig(rpm_graph_filename, bbox_inches='tight')
+		# ax.close()
 
 		# Create a new figure for the saved RPM graph
-		rpm_fig = plt.figure()
-		rpm_ax = rpm_fig.add_subplot(111)
+		# rpm_fig = plt.figure()
+		# rpm_ax = rpm_fig.add_subplot(111)
 
-		# Add the saved RPM graph to the new figure
-		rpm_ax.imshow(plt.imread(rpm_graph_filename))
-		rpm_ax.axis('off')
+		# # Add the saved RPM graph to the new figure
+		# rpm_ax.imshow(plt.imread(rpm_graph_filename))
+		# rpm_ax.axis('off')
 
 		# Save the new figure to the PDF
 		# rpm_fig.savefig(map.get_root()) #.save("rpm_graph.html"))
@@ -401,7 +406,8 @@ class RealRideParser():
 		merged_df["percentage"] = percentage_series.apply(lambda x : "%.2f%%" % (x * 100))
 
 		# fig, ax = plt.subplots(figsize=(10, 10))
-		ax = plt.subplot(self.pdf_grid_spec[1, 0])
+		# ax = plt.subplot(self.pdf_grid_spec[1, 0])
+		ax = self.axs[1][0]
 
 		ax.xaxis.set_visible(False)
 		ax.yaxis.set_visible(False)
@@ -411,7 +417,7 @@ class RealRideParser():
 		for i in range(3):
 			cell_text.append([merged_df.iloc[i]["percentage"]])
 
-		tab = plt.table(cellText=cell_text, rowLabels=merged_df["danger_name"], colLabels=["Fração do tempo com cada tipo de aceleração"], loc="center", colWidths=[1, 1.1], cellLoc="center")
+		tab = ax.table(cellText=cell_text, rowLabels=merged_df["danger_name"], colLabels=["Fração do tempo com cada tipo de aceleração"], loc="center", colWidths=[1, 1.1], cellLoc="center")
 		tab.auto_set_font_size(False)
 		tab.set_fontsize(10)
 		tab.scale(1, 2)
@@ -442,9 +448,10 @@ class RealRideParser():
 		percentage_series = merged_df['count'] / merged_df["count"].sum()
 		merged_df["percentage"] = percentage_series.apply(lambda x : "%.2f%%" % (x * 100))
 
-		ax = plt.subplot(self.pdf_grid_spec[0, :])
+		# ax = plt.subplot(self.pdf_grid_spec[0, :])
 
 		# fig, ax = plt.subplots(figsize=(10, 10))
+		ax = self.axs[0][0]
 
 		ax.xaxis.set_visible(False)
 		ax.yaxis.set_visible(False)
@@ -454,7 +461,7 @@ class RealRideParser():
 		for i in range(3):
 			cell_text.append([merged_df.iloc[i]["percentage"]])
 
-		tab = plt.table(cellText=cell_text, rowLabels=merged_df["danger_name"], colLabels=["Fração do tempo passada lá"], loc="center", colWidths=[1, 1.1], cellLoc="center")
+		tab = ax.table(cellText=cell_text, rowLabels=merged_df["danger_name"], colLabels=["Fração do tempo passada lá"], loc="center", colWidths=[1, 1.1], cellLoc="center")
 		tab.auto_set_font_size(False)
 		tab.set_fontsize(10)
 		tab.scale(1, 2)
