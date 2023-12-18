@@ -787,6 +787,8 @@ class RealRideParser():
 
 	@timer_func
 	def create_obd_df(self):
+		param_name_to_df = {}
+
 		if self.should_get_data_from_database:
 			request_body = {
 				"method": "get_obd_info",
@@ -799,53 +801,77 @@ class RealRideParser():
 			print("response", response)
 			response_dict = json.loads(response.text)
 
-			engine_data_list = []
-			for data in response_dict["data"]:
-				response_list = data[1:]
-				corrected_list = ["" if x is None else x for x in response_list]
-				engine_data = corrected_list[0] + " " + json.dumps([corrected_list[2], corrected_list[2], corrected_list[3]])
-				engine_data_list.append(engine_data)
+			# engine_data_list = []
+			data = response_dict["data"]
+			df = pd.DataFrame(data=data, columns=["id", "timestamp", "user_token", "name", "result"])
+			df["name"] = df["name"].apply(lambda x : x.replace("Vehicle Speed", "SPEED"))
+			df["name"] = df["name"].apply(lambda x : x.replace("Engine RPM", "ENGINE_RPM"))
+			df["timestamp"] = df["timestamp"].apply(lambda x : datetime.strptime(x, new_app_date_format).timestamp())
 
-			if len(engine_data_list) == 0:
-				return pd.DataFrame()
+			params = df["name"].unique()
+
+			for param in params:
+				# response_list = data[1:]
+				# corrected_list = ["" if x is None else x for x in response_list]
+
+				filtered_df = df[df["name"] == param][["timestamp", "result"]]
+				param_df = filtered_df.rename(columns={"result": param})
+
+				# param_name = response_list[-2]
+				# param_value = response_list[-1]
+				# data_obj = datetime.strptime(response_list[0], new_app_date_format)
+				# timestamp = data_obj.timestamp()
+
+				# param_df = pd.DataFrame(data=, columns=["timestamp", param_name])
+
+				# create_default_df = (lambda : pd.DataFrame(columns=["timestamp", param_name]))
+				# param_df = param_name_to_df.get(param_name, create_default_df())
+
+				# param_df.loc[len(param_df.index)] = [timestamp, param_value]
+				param_name_to_df[param] = param_df
+				
+				# engine_data = corrected_list[0] + " " + json.dumps([corrected_list[2], corrected_list[2], corrected_list[3]])
+				# engine_data_list.append(engine_data)
+
+			# if len(engine_data_list) == 0:
+			# 	return pd.DataFrame()
 			
-			engine_data = "\n".join(engine_data_list)
+			# engine_data = "\n".join(engine_data_list)
 		else:
 			engine_data_path = os.path.join(self.root_dir, "DELETEME.txt")
 			engine_data = open(engine_data_path, "r").read().strip()
 
-		param_name_to_df = {}
-		for data_entry in engine_data.split("\n"):
-			if data_entry == "":
-				continue
+			# param_name_to_df = {}
+			for data_entry in engine_data.split("\n"):
+				if data_entry == "":
+					continue
 
-			data_entry = data_entry.replace("NODATA", "0")
-			data_entry = data_entry.replace("Vehicle Speed", "SPEED")
-			data_entry = data_entry.replace("Engine RPM", "ENGINE_RPM")
-			
+				data_entry = data_entry.replace("NODATA", "0")
+				data_entry = data_entry.replace("Vehicle Speed", "SPEED")
+				data_entry = data_entry.replace("Engine RPM", "ENGINE_RPM")
+				
 
-			try:
-				date = data_entry[:34]
-				info_list = json.loads(data_entry[35:])
-				data_obj = datetime.strptime(date, old_app_date_format)
-			except Exception as e:
-				date = data_entry[:23]
-				info_list = json.loads(data_entry[24:])
-				data_obj = datetime.strptime(date, new_app_date_format)
+				try:
+					date = data_entry[:34]
+					info_list = json.loads(data_entry[35:])
+					data_obj = datetime.strptime(date, old_app_date_format)
+				except Exception as e:
+					date = data_entry[:23]
+					info_list = json.loads(data_entry[24:])
+					data_obj = datetime.strptime(date, new_app_date_format)
 
 
-			param_name = info_list[0]
-			param_value = info_list[2]
+				param_name = info_list[0]
+				param_value = info_list[2]
 
-			timestamp = data_obj.timestamp()
+				timestamp = data_obj.timestamp()
 
-			create_default_df = (lambda : pd.DataFrame(columns=["timestamp", param_name]))
-			param_df = param_name_to_df.get(param_name, create_default_df())
+				create_default_df = (lambda : pd.DataFrame(columns=["timestamp", param_name]))
+				param_df = param_name_to_df.get(param_name, create_default_df())
 
-			param_df.loc[len(param_df.index)] = [timestamp, param_value]
-			param_name_to_df[param_name] = param_df
+				param_df.loc[len(param_df.index)] = [timestamp, param_value]
+				param_name_to_df[param_name] = param_df
 
-		speed_series = param_name_to_df["SPEED"]["SPEED"]
 		
 		def convert_vel_to_float(x):
 			vel = x.replace("km/h", "")
@@ -863,54 +889,55 @@ class RealRideParser():
 				print("invalid rpm: %s" % rpm)
 				return 0
 		
+		speed_series = param_name_to_df["SPEED"]["SPEED"]
 		param_name_to_df["SPEED"]["SPEED"] = speed_series.apply(convert_vel_to_float)
 		param_name_to_df["ENGINE_RPM"]["ENGINE_RPM"] = param_name_to_df["ENGINE_RPM"]["ENGINE_RPM"].apply(convert_rpm_to_float)
 
-		def convert_temp_to_float(x):
-			temp = x.replace("C", "")
-			if temp == "":
-				return 0
-			try:
-				return float(temp)
-			except:
-				print("cannot convert temp %s to float" % temp)
-				return 0
+		# def convert_temp_to_float(x):
+		# 	temp = x.replace("C", "")
+		# 	if temp == "":
+		# 		return 0
+		# 	try:
+		# 		return float(temp)
+		# 	except:
+		# 		print("cannot convert temp %s to float" % temp)
+		# 		return 0
 
-		def convert_pressure_to_float(x):
-			pressure = x.replace("kPa", "")
-			if pressure == "":
-				return 0
-			try:
-				return float(pressure)
-			except:
-				print("cannot convert pressure %s to float" % pressure)
-				return 0
-		temp_params = []
-		pressure_params = []
-		other_params = []
-		for param_name in param_name_to_df:
-			standardized_param_name = param_name.lower()
-			param_series = param_name_to_df[param_name][param_name]
+		# def convert_pressure_to_float(x):
+		# 	pressure = x.replace("kPa", "")
+		# 	if pressure == "":
+		# 		return 0
+		# 	try:
+		# 		return float(pressure)
+		# 	except:
+		# 		print("cannot convert pressure %s to float" % pressure)
+		# 		return 0
+		# temp_params = []
+		# pressure_params = []
+		# other_params = []
+		# for param_name in param_name_to_df:
+		# 	standardized_param_name = param_name.lower()
+		# 	param_series = param_name_to_df[param_name][param_name]
 
-			if "temp" in standardized_param_name:
-				temp_params.append(param_name)
+		# 	if "temp" in standardized_param_name:
+		# 		temp_params.append(param_name)
 
-				param_name_to_df[param_name][param_name] = param_series.apply(convert_temp_to_float)
+		# 		param_name_to_df[param_name][param_name] = param_series.apply(convert_temp_to_float)
 
-			elif "pressure" in standardized_param_name:
-				pressure_params.append(param_name)
+		# 	elif "pressure" in standardized_param_name:
+		# 		pressure_params.append(param_name)
 
-				param_name_to_df[param_name][param_name] = param_series.apply(convert_pressure_to_float)
+		# 		param_name_to_df[param_name][param_name] = param_series.apply(convert_pressure_to_float)
 
-			else:
-				other_params.append(param_name)
+		# 	else:
+		# 		other_params.append(param_name)
 
-				# param_name_to_df[param_name][param_name] = param_series.apply(convert_other_to_float)
+		# 		# param_name_to_df[param_name][param_name] = param_series.apply(convert_other_to_float)
 
 
-		self.temp_params = temp_params
-		self.pressure_params = pressure_params
-		self.other_params = other_params
+		# self.temp_params = temp_params
+		# self.pressure_params = pressure_params
+		# self.other_params = other_params
 
 		# immutable_data = []
 		# mutable_data = [] 
