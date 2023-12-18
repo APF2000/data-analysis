@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 
 import io
 import json
-from datetime import datetime, timezone, UTC
+from datetime import datetime, timezone
 
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
@@ -22,7 +22,7 @@ import os
 import numpy as np
 import math
 
-import pyproj
+# import pyproj
 import matplotlib.dates as mdates
 
 from io import BytesIO
@@ -87,7 +87,8 @@ class CrimeAnalyser():
 		
 		# https://www.kaggle.com/datasets/danlessa/geospatial-sao-paulo-crime-database/
 		# https://www.kaggle.com/code/anagagodasilva/s-o-paulo-crime-maps-with-plotly/notebook
-		sp_crimes_path = os.path.join("CrimeData", "crimes_por_bairro_sao_paulo.csv")
+		# sp_crimes_path = os.path.join("CrimeData", "crimes_por_bairro_sao_paulo.csv")
+		sp_crimes_path = "crimes_por_bairro_sao_paulo.csv"
 
 		sp_crimes_df = pd.read_csv(sp_crimes_path)
 		car_crimes_df = sp_crimes_df[sp_crimes_df["descricao"].str.contains("carro", na=False)].copy()
@@ -162,7 +163,7 @@ class RealRideParser():
 		RealRideParser.crime_analyser = CrimeAnalyser()
 
 		if should_get_data_from_database:
-			self.user_id = params["user_id"]
+			self.user_token = params["user_token"]
 			self.date_beg = params["date_beg"]
 			self.date_end = params["date_end"]
 		else:
@@ -293,7 +294,7 @@ class RealRideParser():
 		ax.set_xlabel("Horário UTC")
 
 		first_timestamp = df_to_display.iloc[0]["timestamp"]
-		record_day_month_year_string = datetime.fromtimestamp(first_timestamp, UTC).strftime("%d/%m/%Y %H:%M")
+		record_day_month_year_string = datetime.utcfromtimestamp(first_timestamp).strftime("%d/%m/%Y %H:%M")
 		ax.set_title("Captura de %s em " % physical_qtty_name + record_day_month_year_string)
 
 		min_val = series_to_display.min()
@@ -774,12 +775,13 @@ class RealRideParser():
 		if self.should_get_data_from_database:
 			request_body = {
 				"method": "get_obd_info",
-				"user_token": self.user_id,
-				"time_min": self.date_beg,
-				"time_max": self.date_end
+				"user_token": self.user_token,
+				"date_beg": self.date_beg,
+				"date_end": self.date_end
 			}
 			
 			response = requests.post(RealRideParser.lambda_url, json=request_body)
+			print("response", response)
 			response_dict = json.loads(response.text)
 
 			engine_data_list = []
@@ -803,6 +805,9 @@ class RealRideParser():
 				continue
 
 			data_entry = data_entry.replace("NODATA", "0")
+			data_entry = data_entry.replace("Vehicle Speed", "SPEED")
+			data_entry = data_entry.replace("Engine RPM", "ENGINE_RPM")
+			
 
 			try:
 				date = data_entry[:34]
@@ -1031,9 +1036,9 @@ class RealRideParser():
 		if self.should_get_data_from_database:
 			request_body = {
 				"method": "get_location",
-				"user_token": self.user_id,
-				"time_min": self.date_beg,
-				"time_max": self.date_end
+				"user_token": self.user_token,
+				"date_beg": self.date_beg,
+				"date_end": self.date_end
 			}
 			
 			response = requests.post(RealRideParser.lambda_url, json=request_body)
@@ -1076,9 +1081,9 @@ class RealRideParser():
 		if self.should_get_data_from_database:
 			request_body = {
 				"method": "get_acceleration",
-				"user_token": self.user_id,
-				"time_min": self.date_beg,
-				"time_max": self.date_end
+				"user_token": self.user_token,
+				"date_beg": self.date_beg,
+				"date_end": self.date_end
 			}
 			
 			response = requests.post(RealRideParser.lambda_url, json=request_body)
