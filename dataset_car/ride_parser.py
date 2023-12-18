@@ -42,6 +42,20 @@ old_app_date_format = "%a %b %d %H:%M:%S %Z%z %Y"
 # "yyyy-MM-dd HH:mm:ss.SSS"
 new_app_date_format = "%Y-%m-%d %H:%M:%S.%f"
 
+from time import time 
+  
+  
+def timer_func(func): 
+    # This function shows the execution time of  
+    # the function object passed 
+    def wrap_func(*args, **kwargs): 
+        t1 = time() 
+        result = func(*args, **kwargs) 
+        t2 = time() 
+        print(f'Function {func.__name__!r} executed in {(t2-t1):.4f}s') 
+        return result 
+    return wrap_func 
+
 # def std_param_name(name):
 # 	name = name.strip()
 # 	name = re.sub(r"\s+", "_", name)
@@ -771,6 +785,7 @@ class RealRideParser():
 		# plt.show()
 		return fig # plt.gcf()
 
+	@timer_func
 	def create_obd_df(self):
 		if self.should_get_data_from_database:
 			request_body = {
@@ -1031,7 +1046,7 @@ class RealRideParser():
 
 		return pd.DataFrame(data)
 
-
+	@timer_func
 	def create_gps_df(self):
 		if self.should_get_data_from_database:
 			request_body = {
@@ -1077,6 +1092,7 @@ class RealRideParser():
 
 		return pd.DataFrame(data)
 
+	@timer_func
 	def create_accelerometer_df(self):		
 		if self.should_get_data_from_database:
 			request_body = {
