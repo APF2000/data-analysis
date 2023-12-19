@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_pdf import PdfPages
 from matplotlib.gridspec import GridSpec
 import matplotlib as mpl
+from matplotlib.font_manager import FontProperties
 
 # from selenium import webdriver
 # import selenium
@@ -52,7 +53,7 @@ def timer_func(func):
         t1 = time() 
         result = func(*args, **kwargs) 
         t2 = time() 
-        print(f'Function {func.__name__!r} executed in {(t2-t1):.4f}s') 
+        # print(f"Function {func.__name__!r} executed in {(t2-t1):.4f}s") 
         return result 
     return wrap_func 
 
@@ -213,7 +214,7 @@ class RealRideParser():
 
 		risk_table_fig = self.generate_risk_table(danger_list)
 		# # risk_table_graph.savefig("bla.png")
-		# # self.calculate_acc_stats_near_stop()
+		# self.calculate_acc_stats_near_stop()
 
 		map = self.generate_sudden_acc(map)
 		# sudden_acc_table.show()
@@ -231,20 +232,20 @@ class RealRideParser():
 		# excess_rpm_table.tight_layout(pad=4)
 
 		d = pdf_file.infodict()
-		d['Title'] = 'Relatório da sua direção'
-		d['Author'] = 'OBD Reader App'
-		d['Subject'] = 'Resultados'
-		d['Keywords'] = 'obd data-analysis'
-		d['CreationDate'] = datetime.today()
-		d['ModDate'] = datetime.today()
+		d["Title"] = "Relatório da sua direção"
+		d["Author"] = "OBD Reader App"
+		d["Subject"] = "Resultados"
+		d["Keywords"] = "obd data-analysis"
+		d["CreationDate"] = datetime.today()
+		d["ModDate"] = datetime.today()
 
 		fig_bytes_io = BytesIO()
-		# self.fig.savefig(fig_bytes_io, format='png')
+		# self.fig.savefig(fig_bytes_io, format="png")
 
 		# pdf_file.savefig(fig_bytes_io) #fig_bytes_io)
 
 		fig_bytes_io = BytesIO()
-		self.fig.savefig(fig_bytes_io, format='png')
+		self.fig.savefig(fig_bytes_io, format="png")
 
 		# Reposiciona o cursor no início do buffer
 		fig_bytes_io.seek(0)
@@ -265,8 +266,8 @@ class RealRideParser():
 		pdf_file.close()
 		# self.pdf_fig.show()
 
-		# return map
-		return pdf_bytes_io
+		return map
+		# return pdf_bytes_io
 
 	def generate_velocity_graph(self):
 		vels_from_gps_df = self.obd_data["SPEED"]
@@ -288,7 +289,7 @@ class RealRideParser():
 		# filter_gps = (vels_from_gps_df["timestamp"] >= min_time_filter) & (vels_from_gps_df["timestamp"] <= max_time_filter)
 		# filtered_vels_from_gps_df = vels_from_gps_df[filter_gps]
 
-		# fig, axs = plt.subplots(1, 1, figsize=(6.4, 3), layout='constrained')
+		# fig, axs = plt.subplots(1, 1, figsize=(6.4, 3), layout="constrained")
 
 		display_col_name = "SPEED"
 		physical_qtty_name = "Velocidade"
@@ -319,7 +320,7 @@ class RealRideParser():
 		ax.axhline(y=min_val, color="yellow", linestyle="dashed", label="Valor mínimo (%.2f)" % min_val) 
 		ax.axhline(y=max_val, color="red", linestyle="dashed", label="Valor máximo (%.2f)" % max_val) 
 
-		ax.legend(loc='center right', bbox_to_anchor=(1.6, 0.5),
+		ax.legend(loc="center right", bbox_to_anchor=(1.6, 0.5),
 				ncol=1, fancybox=True, shadow=True)
 
 		# ax.show()
@@ -378,9 +379,9 @@ class RealRideParser():
 		# excess_rpm_percentage = "%.2f" % (excess_rpm_percentage * 100)
 
 		level_to_name = {
-			1: "RPM normal",
-			2: "RPM médio",
-			3: "RPM muito alto"
+			1: "RPM NORMAL",
+			2: "RPM MÉDIO",
+			3: "RPM MUITO ALTO"
 		}
 		danger_percentage_df = pd.DataFrame({"danger_level": dangerous_rpm_list})
 		danger_percentage_df["danger_name"] = danger_percentage_df["danger_level"].map(level_to_name)
@@ -389,13 +390,13 @@ class RealRideParser():
 		count_df.columns = ["danger_name", "count"]
 
 
-		default_rows = pd.DataFrame({"danger_name": ["RPM normal", "RPM médio", "RPM muito alto"],
+		default_rows = pd.DataFrame({"danger_name": ["RPM NORMAL", "RPM MÉDIO", "RPM MUITO ALTO"],
 									"count": [0, 0, 0]})
 
 		merged_df = pd.merge(default_rows, count_df, on="danger_name", how="left").fillna(0)
 		merged_df["count"] = merged_df[["count_x", "count_y"]].max(axis=1)
 
-		percentage_series = merged_df['count'] / merged_df["count"].sum()
+		percentage_series = merged_df["count"] / merged_df["count"].sum()
 		merged_df["percentage"] = percentage_series.apply(lambda x : "%.2f%%" % (x * 100))
 
 		# fig, ax = plt.subplots(figsize=(10, 10))
@@ -413,6 +414,11 @@ class RealRideParser():
 			cell_text.append([merged_df.iloc[i]["percentage"]])
 
 		tab = ax.table(cellText=cell_text, rowLabels=merged_df["danger_name"], colLabels=["Fração do tempo com cada tipo de RPM"], loc="center", colWidths=[1, 1.1], cellLoc="center")
+
+		for (row, col), cell in tab.get_celld().items():
+			if (row == 0):
+				cell.set_text_props(fontproperties=FontProperties(weight="bold"))
+
 		tab.auto_set_font_size(False)
 		tab.set_fontsize(10)
 		tab.scale(1, 2)
@@ -420,7 +426,7 @@ class RealRideParser():
 
 		 # Save the RPM graph as a PNG file
 		# rpm_graph_filename = "rpm_graph.png"
-		# ax.savefig(rpm_graph_filename, bbox_inches='tight')
+		# ax.savefig(rpm_graph_filename, bbox_inches="tight")
 		# ax.close()
 
 		# Create a new figure for the saved RPM graph
@@ -429,7 +435,7 @@ class RealRideParser():
 
 		# # Add the saved RPM graph to the new figure
 		# rpm_ax.imshow(plt.imread(rpm_graph_filename))
-		# rpm_ax.axis('off')
+		# rpm_ax.axis("off")
 
 		# Save the new figure to the PDF
 		# rpm_fig.savefig(map.get_root()) #.save("rpm_graph.html"))
@@ -489,9 +495,9 @@ class RealRideParser():
 		# sudden_acc_percentage = "%.2f" % (sudden_acc_percentage * 100)
 
 		level_to_name = {
-			1: "Aceleração normal",
-			2: "Aceleração média",
-			3: "Aceleração muito alta"
+			1: "ACELERAÇÃO NORMAL",
+			2: "ACELERAÇÃO MÉDIA",
+			3: "ACELERAÇÃO MUITO ALTA"
 		}
 		danger_percentage_df = pd.DataFrame({"danger_level": dangerous_acc_list})
 		danger_percentage_df["danger_name"] = danger_percentage_df["danger_level"].map(level_to_name)
@@ -500,13 +506,13 @@ class RealRideParser():
 		count_df.columns = ["danger_name", "count"]
 
 
-		default_rows = pd.DataFrame({"danger_name": ["Aceleração normal", "Aceleração média", "Aceleração muito alta"],
+		default_rows = pd.DataFrame({"danger_name": ["ACELERAÇÃO NORMAL", "ACELERAÇÃO MÉDIA", "ACELERAÇÃO MUITO ALTA"],
 									"count": [0, 0, 0]})
 
 		merged_df = pd.merge(default_rows, count_df, on="danger_name", how="left").fillna(0)
 		merged_df["count"] = merged_df[["count_x", "count_y"]].max(axis=1)
 
-		percentage_series = merged_df['count'] / merged_df["count"].sum()
+		percentage_series = merged_df["count"] / merged_df["count"].sum()
 		merged_df["percentage"] = percentage_series.apply(lambda x : "%.2f%%" % (x * 100))
 
 		# fig, ax = plt.subplots(figsize=(10, 10))
@@ -522,6 +528,11 @@ class RealRideParser():
 			cell_text.append([merged_df.iloc[i]["percentage"]])
 
 		tab = ax.table(cellText=cell_text, rowLabels=merged_df["danger_name"], colLabels=["Fração do tempo com cada tipo de aceleração"], loc="center", colWidths=[1, 1.1], cellLoc="center")
+
+		for (row, col), cell in tab.get_celld().items():
+			if (row == 0):
+				cell.set_text_props(fontproperties=FontProperties(weight="bold"))
+
 		tab.auto_set_font_size(False)
 		tab.set_fontsize(10)
 		tab.scale(1, 2)
@@ -532,9 +543,9 @@ class RealRideParser():
 
 	def generate_risk_table(self, danger_list):
 		level_to_name = {
-			1: "Baixo Risco",
-			2: "Médio Risco",
-			3: "Alto Risco"
+			1: "BAIXO RISCO",
+			2: "MÉDIO RISCO",
+			3: "ALTO RISCO"
 		}
 		danger_percentage_df = pd.DataFrame({"danger_level": danger_list})
 		danger_percentage_df["danger_name"] = danger_percentage_df["danger_level"].map(level_to_name)
@@ -543,13 +554,13 @@ class RealRideParser():
 		count_df.columns = ["danger_name", "count"]
 
 
-		default_rows = pd.DataFrame({"danger_name": ["Baixo Risco", "Médio Risco", "Alto Risco"],
+		default_rows = pd.DataFrame({"danger_name": ["BAIXO RISCO", "MÉDIO RISCO", "ALTO RISCO"],
 									"count": [0, 0, 0]})
 
 		merged_df = pd.merge(default_rows, count_df, on="danger_name", how="left").fillna(0)
 		merged_df["count"] = merged_df[["count_x", "count_y"]].max(axis=1)
 
-		percentage_series = merged_df['count'] / merged_df["count"].sum()
+		percentage_series = merged_df["count"] / merged_df["count"].sum()
 		merged_df["percentage"] = percentage_series.apply(lambda x : "%.2f%%" % (x * 100))
 
 		# ax = plt.subplot(self.pdf_grid_spec[0, :])
@@ -566,6 +577,11 @@ class RealRideParser():
 			cell_text.append([merged_df.iloc[i]["percentage"]])
 
 		tab = ax.table(cellText=cell_text, rowLabels=merged_df["danger_name"], colLabels=["Fração do tempo passada lá"], loc="center", colWidths=[1, 1.1], cellLoc="center")
+
+		for (row, col), cell in tab.get_celld().items():
+			if (row == 0):
+				cell.set_text_props(fontproperties=FontProperties(weight="bold"))
+
 		tab.auto_set_font_size(False)
 		tab.set_fontsize(10)
 		tab.scale(1, 2)
@@ -670,9 +686,9 @@ class RealRideParser():
 
 		####################################
 
-		print(acceleration_starts)
-		print(len(acceleration_starts))
-		print(len(acceleration_start_timestamps))
+		# print(acceleration_starts)
+		# print(len(acceleration_starts))
+		# print(len(acceleration_start_timestamps))
 		# acc_from_android_df
 		# for timestamp in acceleration_start_timestamps:
 
@@ -713,14 +729,14 @@ class RealRideParser():
 		# 	acc_from_android_df.iloc[acc_index]["acceleration"]
 
 		# acceleration_start_timestamps, 
-		print(np.average(re_acceleration_avg_s))
-		print(np.std(re_acceleration_avg_s))
-		print(np.mean(re_acceleration_avg_s))
-		print(np.median(re_acceleration_avg_s))
-		print(np.quantile(re_acceleration_avg_s, 0.25))
-		print(np.quantile(re_acceleration_avg_s, 0.75))
-		print(min(re_acceleration_avg_s))
-		print(max(re_acceleration_avg_s))
+		# print(np.average(re_acceleration_avg_s))
+		# print(np.std(re_acceleration_avg_s))
+		# print(np.mean(re_acceleration_avg_s))
+		# print(np.median(re_acceleration_avg_s))
+		# print(np.quantile(re_acceleration_avg_s, 0.25))
+		# print(np.quantile(re_acceleration_avg_s, 0.75))
+		# print(min(re_acceleration_avg_s))
+		# print(max(re_acceleration_avg_s))
 
 	def generate_temp_graphs(self):
 		n_params = len(self.temp_params)
@@ -798,7 +814,7 @@ class RealRideParser():
 			}
 			
 			response = requests.post(RealRideParser.lambda_url, json=request_body)
-			print("response", response)
+			# print("response", response)
 			response_dict = json.loads(response.text)
 
 			# engine_data_list = []
@@ -886,7 +902,7 @@ class RealRideParser():
 			try:
 				return float(rpm)
 			except:
-				print("invalid rpm: %s" % rpm)
+				# print("invalid rpm: %s" % rpm)
 				return 0
 		
 		speed_series = param_name_to_df["SPEED"]["SPEED"]
