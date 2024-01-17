@@ -1,0 +1,2 @@
+# https://caloriasporalimentoapi.herokuapp.com/api/calorias/?descricao=Frango
+# https://www.paodeacucar.com/produto/155593/cereja-importada-a-granel-300g

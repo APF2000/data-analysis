@@ -180,3 +180,9 @@ dataset_car/SP_Municipios_2022.zip
 dataset_car/BR_Municipios_2022.zip
 dataset_car/handler.py
 dataset_car/crimes_por_bairro_sao_paulo.csv
+food/receipts/*
+food/receipt_opencv/0a0ebd53.jpeg
+food/receipt_opencv/Data Extraction - Remote Assignment - Google Docs.pdf
+food/receipt_opencv/ff8e6691.jpeg
+kaggle/apple_quality/apple_quality.csv
+food/receipt_opencv.zip
