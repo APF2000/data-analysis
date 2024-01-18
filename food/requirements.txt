@@ -2,5 +2,10 @@ scikit-image
 opencv-python
 numpy
 matplotlib
+pandas
 pytesseract
 pdf2image
+pytorch
+torchvision
+torchaudio
+easyocr
