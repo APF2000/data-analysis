@@ -59,14 +59,14 @@ class StatusInvestScraper():
 			param_historical_vals = param_dict["ranks"]
 
 			for historical_val_dict in param_historical_vals:
-				param_year = historical_val_dict["rank"]
+				param_year = int(historical_val_dict["rank"])
 
 				# raw_val = historical_val_dict["value_F"]
 				# val_contains_number = any(char.isdigit() for char in raw_val)
 
 				param_val = None
 				if "value" in historical_val_dict.keys():
-					param_val = historical_val_dict["value"]
+					param_val = float(historical_val_dict["value"])
 
 				data_row = (param_name, param_year, param_val)
 				df_data_rows.append(data_row)
@@ -77,7 +77,7 @@ class AssetDataPlotter():
 	def __init__(self, df):
 		self.df = df
 
-	def plot(self, param_name, tickers_to_plot=["bbse3", "itsa4", "cple6"]):
+	def plot(self, param_name="dy", tickers_to_plot=["bbse3", "itsa4", "cple6"]):
 		param_df_filter = (self.df["param_name"] == param_name)
 
 		ticker_df_filter = (self.df["ticker"] == None)
@@ -86,12 +86,7 @@ class AssetDataPlotter():
 			
 		complete_df_filter = (param_df_filter & ticker_df_filter)
 
-		filtered_df = self.df[complete_df_filter][["year", "value"]]
-		filtered_df.plot(x="year", y="value")
-
-		legend_labels = [el[0] for el in self.df[complete_df_filter].groupby("ticker")]
-		dfs_to_plot = [el[1] for el in self.df[complete_df_filter].groupby("ticker")]
-
+		plt.title(param_name + " over time")
 
 		for el in self.df[complete_df_filter].groupby("ticker"):
 			legend_label = el[0]
@@ -102,26 +97,6 @@ class AssetDataPlotter():
 
 			plt.plot(x, y, label=legend_label)
 
-		
 		plt.legend()
-
-
-		# x_data_series = [df["year"] for df in dfs_to_plot]
-		# y_data_series = [df["value"] for df in dfs_to_plot]
-		# labels_data_series = [df["ticker"] for df in dfs_to_plot]
-
-		# legend_aux = plt.plot(x_data_series, y_data_series)
-		# plt.legend(legend_aux, tickers_to_plot, loc=1)
-		# plt.show()
-
-		# plt.plot([x_data_series, y_data_series])
-		# plt.legend(labels_data_series)
-
 		plt.show()
   
-# scraper = StatusInvestScraper()
-# all_stocks_df = scraper.get_all_available_data()
-# print(all_stocks_df)
-
-# plotter = AssetDataPlotter(all_stocks_df)
-# plotter.plot("dy")
