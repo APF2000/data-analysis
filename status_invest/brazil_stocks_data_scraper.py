@@ -3,7 +3,9 @@ import subprocess
 import os
 import time
 import json
+
 import pandas as pd
+import matplotlib.pyplot as plt
 
 class StatusInvestScraper():
 	def __init__(self, root_save_folder="stock_data"):
@@ -70,7 +72,56 @@ class StatusInvestScraper():
 				df_data_rows.append(data_row)
 
 		return pd.DataFrame(data=df_data_rows, columns=df_col_names)
+	
+class AssetDataPlotter():
+	def __init__(self, df):
+		self.df = df
 
-scraper = StatusInvestScraper()
-all_stocks_df = scraper.get_all_available_data()
-print(all_stocks_df)
+	def plot(self, param_name, tickers_to_plot=["bbse3", "itsa4", "cple6"]):
+		param_df_filter = (self.df["param_name"] == param_name)
+
+		ticker_df_filter = (self.df["ticker"] == None)
+		for ticker in tickers_to_plot:
+			ticker_df_filter = ( ticker_df_filter | (self.df["ticker"] == ticker) )
+			
+		complete_df_filter = (param_df_filter & ticker_df_filter)
+
+		filtered_df = self.df[complete_df_filter][["year", "value"]]
+		filtered_df.plot(x="year", y="value")
+
+		legend_labels = [el[0] for el in self.df[complete_df_filter].groupby("ticker")]
+		dfs_to_plot = [el[1] for el in self.df[complete_df_filter].groupby("ticker")]
+
+
+		for el in self.df[complete_df_filter].groupby("ticker"):
+			legend_label = el[0]
+			df_to_plot = el[1]
+
+			x = df_to_plot["year"]
+			y = df_to_plot["value"]
+
+			plt.plot(x, y, label=legend_label)
+
+		
+		plt.legend()
+
+
+		# x_data_series = [df["year"] for df in dfs_to_plot]
+		# y_data_series = [df["value"] for df in dfs_to_plot]
+		# labels_data_series = [df["ticker"] for df in dfs_to_plot]
+
+		# legend_aux = plt.plot(x_data_series, y_data_series)
+		# plt.legend(legend_aux, tickers_to_plot, loc=1)
+		# plt.show()
+
+		# plt.plot([x_data_series, y_data_series])
+		# plt.legend(labels_data_series)
+
+		plt.show()
+  
+# scraper = StatusInvestScraper()
+# all_stocks_df = scraper.get_all_available_data()
+# print(all_stocks_df)
+
+# plotter = AssetDataPlotter(all_stocks_df)
+# plotter.plot("dy")
