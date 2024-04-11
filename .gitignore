@@ -201,3 +201,4 @@ MuffiChiuaua/test/*
 MuffiChiuaua/train/*
 MuffiChiuaua/archive.zip
 status_invest/response.json
+status_invest/stock_data/*
