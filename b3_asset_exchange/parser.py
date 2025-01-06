@@ -45,4 +45,14 @@ class B3Parser():
 				'Credito': 'credit'
 			}
 		})
+		
+		df['op_date'] = pd.to_datetime(df['op_date'], format='%d/%m/%Y')
+		
+			# 'Movimentação': 'financial_movement_type',
+			# 'Produto': 'product',
+			# 'Instituição': 'broker_name',
+			# 'Quantidade': 'qtty',
+			# 'Preço unitário': 'unit_price',
+			# 'Valor da Operação': 'op_total_amount'
+			
 		return df
