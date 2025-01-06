@@ -4,7 +4,7 @@ import time
 import pandas as pd
 import json
 
-class StockDataFetcher:
+class StockFetcher:
 	def __init__(self, root_save_folder: str = "stock_data"):
 		self.root_save_folder = root_save_folder
 
