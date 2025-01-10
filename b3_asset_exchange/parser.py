@@ -27,6 +27,8 @@ class B3Parser():
 		final_df = df
 		
 		self.buy_and_sell_df = self.__get_buy_and_sell_df__(final_df)
+		self.updates_df = self.__get_updates_df__(final_df)
+		
 		
 		self.final_df = final_df
 
@@ -59,7 +61,8 @@ class B3Parser():
 				'Transferência - Liquidação': 'buy_and_sell',
 				'PAGAMENTO DE JUROS': 'dividends',
 				'Rendimento': 'dividends',
-				'Empréstimo': 'asset_rent'
+				'Empréstimo': 'asset_rent',
+				'Atualização': 'asset_update'
 			}
 		})
 		
@@ -70,11 +73,17 @@ class B3Parser():
 			# 'Valor da Operação': 'op_total_amount'
 			
 		df['ticker_code'] = df['product'].apply(lambda x: x.split('-')[0].strip())
+		df['legal_name'] = df['product'].apply(lambda x: x.split('-')[1].strip())
 			
 		return df
 		
 	def __get_buy_and_sell_df__(self, final_df):
 		filter_series = (final_df['financial_movement_type'] == 'buy_and_sell')
+		
+		return final_df[filter_series]
+		
+	def __get_updates_df__(self, final_df):
+		filter_series = (final_df['financial_movement_type'] == 'asset_update')
 		
 		return final_df[filter_series]
 		
