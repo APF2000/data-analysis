@@ -59,8 +59,11 @@ class B3Parser():
 		df = df.replace({
 			'financial_movement_type': {
 				'Transferência - Liquidação': 'buy_and_sell',
+				'COMPRA/VENDA': 'buy_and_sell',
 				'PAGAMENTO DE JUROS': 'dividends',
 				'Rendimento': 'dividends',
+				'Juros Sobre Capital Próprio': 'dividends',
+				'Dividendo': 'dividends',
 				'Empréstimo': 'asset_rent',
 				'Atualização': 'asset_update'
 			}
