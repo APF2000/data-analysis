@@ -204,3 +204,4 @@ status_invest/response.json
 status_invest/stock_data/*
 b3_asset_exchange/test.ipynb
 *.xlsx
+b3_asset_exchange/final.csv
