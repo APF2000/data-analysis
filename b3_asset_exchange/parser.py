@@ -81,12 +81,16 @@ class B3Parser():
 		return df
 		
 	def __get_buy_and_sell_df__(self, final_df):
-		filter_series = (final_df['financial_movement_type'] == 'buy_and_sell')
+		filter_movement = (final_df['financial_movement_type'] == 'buy_and_sell')
+		filter_empty_price = (final_df['unit_price'] != '-')
+		filter_empty_amount = (final_df['op_total_amount'] != '-')
 		
-		return final_df[filter_series]
+		final_filter = (filter_movement & filter_empty_price & filter_empty_amount)
+		
+		return final_df[final_filter]
 		
 	def __get_updates_df__(self, final_df):
-		filter_series = (final_df['financial_movement_type'] == 'asset_update')
+		filter_movement = (final_df['financial_movement_type'] == 'asset_update')
 		
-		return final_df[filter_series]
+		return final_df[filter_movement]
 		
